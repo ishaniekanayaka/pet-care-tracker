@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
+
 const Login = () => {
   const router = useRouter();
   const [email, setEmail] = useState<string>("");
@@ -28,7 +29,7 @@ const Login = () => {
   return (
     <View className="flex-1 w-full justify-center items-center p-4 bg-blue-100">
       <Text className="text-2xl font-bold mb-6 text-blue-950 text-center">
-        Login to Task Manager
+        Login to Pet Care Tracker
       </Text>
 
       <TextInput
