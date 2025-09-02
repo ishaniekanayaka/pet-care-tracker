@@ -1,8 +1,8 @@
 import { login } from '@/services/authService';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
+import { ActivityIndicator, Alert, Pressable, Text, TextInput, TouchableOpacity, View, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 
 const Login = () => {
   const router = useRouter();
@@ -15,9 +15,9 @@ const Login = () => {
     setIsLoadingLogin(true);
 
     try {
-      await login(email, password); // your Firebase auth service
+      await login(email, password);
       Alert.alert("Success", "Logged in successfully!");
-      router.push('/dashboard/home'); // navigate to home screen
+      router.push('/dashboard/home');
     } catch (err: any) {
       console.error(err);
       Alert.alert("Error", err.message || "Login failed. Please try again.");
@@ -27,48 +27,85 @@ const Login = () => {
   };
 
   return (
-    <View className="flex-1 w-full justify-center items-center p-4 bg-blue-100">
-      <Text className="text-2xl font-bold mb-6 text-blue-950 text-center">
-        Login to Pet Care Tracker
-      </Text>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-white"
+    >
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View className="flex-1 justify-center items-center p-6 bg-white">
+          {/* Logo/Image Section */}
+          <View className="items-center mb-8">
+            <View className="w-32 h-32 rounded-full bg-[#F3F7F0] justify-center items-center mb-4 shadow-sm">
+              <Text className="text-5xl">🐾</Text>
+            </View>
+            <Text className="text-3xl font-bold text-[#5D688A] mt-4">
+              PetCare
+            </Text>
+            <Text className="text-lg text-gray-600 mt-2">
+              Loving care for your furry friends
+            </Text>
+          </View>
 
-      <TextInput
-        className="border border-gray-300 p-3 mb-4 w-full rounded"
-        placeholder="Email"
-        placeholderTextColor="#9CA3AF"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+          {/* Form Section */}
+          <View className="w-full max-w-md">
+            <Text className="text-2xl font-bold mb-6 text-[#5D688A] text-center">
+              Welcome Back
+            </Text>
 
-      <TextInput
-        className="border border-gray-300 p-3 mb-4 w-full rounded"
-        placeholder="Password"
-        placeholderTextColor="#9CA3AF"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+            <View className="mb-5">
+              <Text className="text-sm font-medium text-gray-700 mb-2">Email</Text>
+              <TextInput
+                className="border border-[#D1D9E6] p-4 w-full rounded-xl bg-white shadow-sm"
+                placeholder="Enter your email"
+                placeholderTextColor="#9CA3AF"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
 
-      <TouchableOpacity
-        className={`p-4 rounded-lg mt-4 w-full ${isLoadingLogin ? "bg-gray-400" : "bg-blue-500"}`}
-        onPress={handleLogin}
-        disabled={isLoadingLogin}
-      >
-        {isLoadingLogin ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text className="text-white text-center font-bold">Login</Text>
-        )}
-      </TouchableOpacity>
+            <View className="mb-6">
+              <Text className="text-sm font-medium text-gray-700 mb-2">Password</Text>
+              <TextInput
+                className="border border-[#D1D9E6] p-4 w-full rounded-xl bg-white shadow-sm"
+                placeholder="Enter your password"
+                placeholderTextColor="#9CA3AF"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
+            </View>
+            <TouchableOpacity
+              className={`p-5 rounded-xl mt-2 w-full shadow-sm ${isLoadingLogin ? "bg-[#9BA5C2]" : "bg-[#5D688A]"}`}
+              onPress={handleLogin}
+              disabled={isLoadingLogin}
+            >
+              <View className="flex-row justify-center items-center">
+                {isLoadingLogin ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text className="text-white text-center font-bold text-lg mr-2">Sign In</Text>
+                    <Ionicons name="paw" size={20} color="#fff" />
+                  </>
+                )}
+              </View>
+            </TouchableOpacity>
+            
+          </View>
 
-      <Pressable className="mt-3" onPress={() => router.push('/register')}>
-        <Text className="text-blue-500 text-center">
-          Don't have an account? Register
-        </Text>
-      </Pressable>
-    </View>
+          {/* Sign up Section */}
+          <View className="flex-row mt-8">
+            <Text className="text-gray-600">Don't have an account? </Text>
+            <Pressable onPress={() => router.push('/register')}>
+              <Text className="text-[#5D688A] font-bold">Sign Up</Text>
+              
+            </Pressable>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 

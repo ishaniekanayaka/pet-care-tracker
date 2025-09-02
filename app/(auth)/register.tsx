@@ -4,18 +4,16 @@ import React, { useState } from 'react';
 import { 
   ActivityIndicator, 
   Alert, 
-  Image, 
   Pressable, 
-  ScrollView,
   Text, 
   TextInput, 
   TouchableOpacity, 
   View,
-  Dimensions 
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-const { width } = Dimensions.get('window');
 
 const Register = () => {
   const router = useRouter(); 
@@ -58,37 +56,37 @@ const Register = () => {
   }
 
   return (
-    <ScrollView className="flex-1 bg-gradient-to-br from-pink-50 to-purple-50">
-      <View className="flex-1 justify-center items-center px-6 py-8">
-        
-        {/* Header Section with Pet Illustration */}
-        <View className="items-center mb-8 mt-12">
-          <View className="bg-white rounded-full p-6 shadow-lg mb-4">
-            <Image 
-              source={{
-                uri: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=200&h=200&fit=crop&crop=face'
-              }}
-              className="w-24 h-24 rounded-full"
-              resizeMode="cover"
-            />
-          </View>
-          <Text className="text-3xl font-bold mb-2" style={{ color: '#5D688A' }}>
-            Join PetCare! 🐾
-          </Text>
-          <Text className="text-center text-base" style={{ color: '#5D688A' }}>
-            Create your account to start caring for your furry friends
-          </Text>
-        </View>
-
-        {/* Form Container */}
-        <View className="w-full max-w-sm">
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-white"
+    >
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View className="flex-1 justify-center items-center p-6 bg-white">
           
-          {/* Email Input */}
-          <View className="mb-4">
-            <Text className="font-semibold mb-2 ml-1" style={{ color: '#5D688A' }}>Email Address</Text>
-            <View className="bg-white rounded-2xl shadow-sm" style={{ borderColor: '#5D688A', borderWidth: 1 }}>
+          {/* Logo/Image Section */}
+          <View className="items-center mb-6">
+            <View className="w-32 h-32 rounded-full bg-[#F3F7F0] justify-center items-center mb-4 shadow-sm">
+              <Text className="text-5xl">🐾</Text>
+            </View>
+            <Text className="text-3xl font-bold text-[#5D688A] mt-2">
+              Join PetCare
+            </Text>
+            <Text className="text-lg text-gray-600 mt-2 text-center">
+              Create your account to start caring for your furry friends
+            </Text>
+          </View>
+
+          {/* Form Section */}
+          <View className="w-full max-w-md">
+            <Text className="text-2xl font-bold mb-6 text-[#5D688A] text-center">
+              Create Account
+            </Text>
+
+            {/* Email Input */}
+            <View className="mb-5">
+              <Text className="text-sm font-medium text-gray-700 mb-2">Email</Text>
               <TextInput
-                className="p-4 text-gray-800 text-base"
+                className="border border-[#D1D9E6] p-4 w-full rounded-xl bg-white shadow-sm"
                 placeholder="Enter your email"
                 placeholderTextColor="#9CA3AF"
                 value={email}
@@ -97,128 +95,102 @@ const Register = () => {
                 autoCapitalize="none"
               />
             </View>
-          </View>
 
-          {/* Password Input */}
-          <View className="mb-4">
-            <Text className="font-semibold mb-2 ml-1" style={{ color: '#5D688A' }}>Password</Text>
-            <View className="bg-white rounded-2xl shadow-sm flex-row items-center" style={{ borderColor: '#5D688A', borderWidth: 1 }}>
-              <TextInput
-                className="flex-1 p-4 text-gray-800 text-base"
-                placeholder="Create a password"
-                placeholderTextColor="#9CA3AF" 
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
-              />
-              <TouchableOpacity 
-                className="pr-4"
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Ionicons 
-                  name={showPassword ? "eye-off" : "eye"} 
-                  size={20} 
-                  color="#9CA3AF" 
+            {/* Password Input */}
+            <View className="mb-5">
+              <Text className="text-sm font-medium text-gray-700 mb-2">Password</Text>
+              <View className="border border-[#D1D9E6] rounded-xl bg-white shadow-sm flex-row items-center">
+                <TextInput
+                  className="flex-1 p-4 text-gray-800"
+                  placeholder="Create your password"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
                 />
-              </TouchableOpacity>
+                <TouchableOpacity 
+                  className="pr-4"
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons 
+                    name={showPassword ? "eye-off" : "eye"} 
+                    size={20} 
+                    color="#9CA3AF" 
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
 
-          {/* Confirm Password Input */}
-          <View className="mb-6">
-            <Text className="font-semibold mb-2 ml-1" style={{ color: '#5D688A' }}>Confirm Password</Text>
-            <View className="bg-white rounded-2xl shadow-sm flex-row items-center" style={{ borderColor: '#5D688A', borderWidth: 1 }}>
-              <TextInput
-                className="flex-1 p-4 text-gray-800 text-base"
-                placeholder="Confirm your password"
-                placeholderTextColor="#9CA3AF" 
-                secureTextEntry={!showConfirmPassword}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-              />
-              <TouchableOpacity 
-                className="pr-4"
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                <Ionicons 
-                  name={showConfirmPassword ? "eye-off" : "eye"} 
-                  size={20} 
-                  color="#9CA3AF" 
+            {/* Confirm Password Input */}
+            <View className="mb-6">
+              <Text className="text-sm font-medium text-gray-700 mb-2">Confirm Password</Text>
+              <View className="border border-[#D1D9E6] rounded-xl bg-white shadow-sm flex-row items-center">
+                <TextInput
+                  className="flex-1 p-4 text-gray-800"
+                  placeholder="Confirm your password"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry={!showConfirmPassword}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
                 />
-              </TouchableOpacity>
+                <TouchableOpacity 
+                  className="pr-4"
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <Ionicons 
+                    name={showConfirmPassword ? "eye-off" : "eye"} 
+                    size={20} 
+                    color="#9CA3AF" 
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
+
+            {/* Register Button */}
+            <TouchableOpacity
+              className={`p-5 rounded-xl mt-2 w-full shadow-sm ${isLoadingReg ? "bg-[#9BA5C2]" : "bg-[#5D688A]"}`}
+              onPress={handleRegister}
+              disabled={isLoadingReg}
+            >
+              <View className="flex-row justify-center items-center">
+                {isLoadingReg ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text className="text-white text-center font-bold text-lg mr-2">Create Account</Text>
+                    <Ionicons name="paw" size={20} color="#fff" />
+                  </>
+                )}
+              </View>
+            </TouchableOpacity>
+
+            {/* Login Link */}
+            <Pressable 
+              className="mt-6 p-2"
+              onPress={() => router.back()}
+            >
+              <Text className="text-center text-base text-gray-600">
+                Already have an account?{' '}
+                <Text className="font-bold text-[#5D688A]">Sign In</Text>
+              </Text>
+            </Pressable>
           </View>
 
-          {/* Register Button */}
-          <TouchableOpacity 
-            className="rounded-2xl p-4 shadow-lg"
-            style={{ 
-              backgroundColor: isLoadingReg ? '#9CA3AF' : '#5D688A'
-            }}
-            onPress={handleRegister}
-            disabled={isLoadingReg}
-          >
-            <View className="flex-row justify-center items-center">
-              {isLoadingReg ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <Text className="text-white text-lg font-bold mr-2">Create Account</Text>
-                  <Ionicons name="paw" size={20} color="#fff" />
-                </>
-              )}
+          {/* Bottom Decoration */}
+          <View className="flex-row justify-center items-center mt-8 space-x-4">
+            <View className="rounded-full p-3 bg-[#F3F7F0]">
+              <Text className="text-2xl">🐶</Text>
             </View>
-          </TouchableOpacity>
-
-          {/* Login Link */}
-          <Pressable 
-            className="mt-6 p-2"
-            onPress={() => router.back()}
-          >
-            <Text className="text-center text-base" style={{ color: '#5D688A' }}>
-              Already have an account? 
-              <Text className="font-bold" style={{ color: '#5D688A' }}> Sign In</Text>
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Bottom Decoration */}
-        <View className="flex-row justify-center items-center mt-8 space-x-4">
-          <View className="rounded-full p-3" style={{ backgroundColor: '#E5BEB5' }}>
-            <Text className="text-2xl">🐶</Text>
-          </View>
-          <View className="rounded-full p-3" style={{ backgroundColor: '#5D688A' }}>
-            <Text className="text-2xl">🐱</Text>
-          </View>
-          <View className="rounded-full p-3" style={{ backgroundColor: '#E5BEB5' }}>
-            <Text className="text-2xl">🐰</Text>
-          </View>
-        </View>
-        
-        {/* App Features Preview */}
-        <View className="mt-8 bg-white/60 rounded-2xl p-4 w-full max-w-sm">
-          <Text className="font-bold text-center mb-2" style={{ color: '#5D688A' }}>
-            What you'll get:
-          </Text>
-          <View className="space-y-2">
-            <View className="flex-row items-center">
-              <Ionicons name="medical" size={16} color="#5D688A" />
-              <Text className="ml-2 text-sm" style={{ color: '#5D688A' }}>Health tracking for your pets</Text>
+            <View className="rounded-full p-3 bg-[#5D688A]">
+              <Text className="text-2xl text-white">🐱</Text>
             </View>
-            <View className="flex-row items-center">
-              <Ionicons name="calendar" size={16} color="#5D688A" />
-              <Text className="ml-2 text-sm" style={{ color: '#5D688A' }}>Appointment reminders</Text>
-            </View>
-            <View className="flex-row items-center">
-              <Ionicons name="location" size={16} color="#5D688A" />
-              <Text className="ml-2 text-sm" style={{ color: '#5D688A' }}>Find nearby vets & pet stores</Text>
+            <View className="rounded-full p-3 bg-[#F3F7F0]">
+              <Text className="text-2xl">🐰</Text>
             </View>
           </View>
         </View>
-
-      </View>
-    </ScrollView>
-    
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
