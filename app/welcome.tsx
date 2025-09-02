@@ -10,7 +10,7 @@ const Welcome = () => {
   const { user } = useAuth();
 
   const handleContinue = async () => {
-    const key = `${STORAGE_KEYS.ONBOARDED}:${user?.id || user?.email}`;
+    const key = `${STORAGE_KEYS.ONBOARDED}:${user?.email}`;
     await AsyncStorage.setItem(key, "1");
     router.replace("/dashboard/home");
   };

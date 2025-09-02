@@ -33,7 +33,7 @@ const Login = () => {
 
       Alert.alert("Success", "Logged in successfully!");
 
-      const key = `${STORAGE_KEYS.ONBOARDED}:${loggedInUser.id || loggedInUser.email}`;
+      const key = `${STORAGE_KEYS.ONBOARDED}:${loggedInUser.user?.uid || loggedInUser.user?.email}`;
       const seen = await AsyncStorage.getItem(key);
 
       if (seen) {
