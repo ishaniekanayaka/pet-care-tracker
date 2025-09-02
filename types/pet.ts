@@ -7,4 +7,5 @@ export interface Pet {
   weight: number;
   healthHistory?: string;
   createdAt?: Date;
+  image?: string;
 }
