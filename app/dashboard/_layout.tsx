@@ -1,12 +1,12 @@
-import React from 'react'
-import { Tabs } from 'expo-router'
-import MaterialIcons from '@expo/vector-icons/MaterialIcons'
+import { Tabs } from "expo-router";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import React from "react";
 
 const tabs = [
   { label: "Home", name: "home", icon: "home-filled" },
   { label: "Profile", name: "profile", icon: "person" },
   { label: "Setting", name: "settings", icon: "settings" },
-]
+];
 
 const DashboardLayout = () => {
   return (
@@ -16,7 +16,7 @@ const DashboardLayout = () => {
         tabBarInactiveTintColor: "#999",
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#ccc",
+          backgroundColor: "#f8f8f8",
         },
       }}
     >
@@ -33,7 +33,7 @@ const DashboardLayout = () => {
         />
       ))}
     </Tabs>
-  )
-}
+  );
+};
 
-export default DashboardLayout
+export default DashboardLayout;
