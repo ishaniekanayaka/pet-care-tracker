@@ -6,16 +6,12 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { auth } from "../../firebase";
 import { getPetsByUser } from "../../services/petService";
 import { Pet } from "../../types/pet";
-
-interface HealthRecord {
-  id: string;
-  petId: string;
-  type: 'vaccination' | 'checkup' | 'medication' | 'treatment';
-  title: string;
-  date: string;
-  nextDue?: string;
-  notes?: string;
-}
+import { HealthRecord } from "../../types/health";
+import { 
+  addHealthRecord, 
+  getHealthRecordsByPet, 
+  deleteHealthRecord 
+} from "../../services/healthService";
 
 const Health = () => {
   const [pets, setPets] = useState<Pet[]>([]);
@@ -32,6 +28,7 @@ const Health = () => {
 
   const userId = auth.currentUser?.uid || "";
 
+  // Load pets first
   const loadPets = async () => {
     if (!userId) return;
     const data = await getPetsByUser(userId);
@@ -41,27 +38,55 @@ const Health = () => {
     }
   };
 
-  const addHealthRecord = () => {
+  // Load health records for selected pet
+  const loadHealthRecords = async (petId: string) => {
+    const records = await getHealthRecordsByPet(petId);
+    setHealthRecords(records);
+  };
+
+  const handleAddRecord = async () => {
     if (!selectedPet || !newRecord.title || !newRecord.date) {
       Alert.alert("Error", "Please fill required fields");
       return;
     }
 
-    const record: HealthRecord = {
-      id: Date.now().toString(),
-      petId: selectedPet.id!,
-      ...newRecord,
-    };
+    try {
+      const record: HealthRecord = {
+        petId: selectedPet.id!,
+        ...newRecord,
+      };
 
-    setHealthRecords([...healthRecords, record]);
-    setNewRecord({ type: 'vaccination', title: '', date: '', nextDue: '', notes: '' });
-    setShowAddModal(false);
-    Alert.alert("Success", "Health record added!");
+      await addHealthRecord(record);
+      setShowAddModal(false);
+      setNewRecord({ type: 'vaccination', title: '', date: '', nextDue: '', notes: '' });
+      loadHealthRecords(selectedPet.id!);
+      Alert.alert("Success", "Health record added!");
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to save health record");
+    }
+  };
+
+  const handleDeleteRecord = async (id: string) => {
+    try {
+      await deleteHealthRecord(id);
+      if (selectedPet) loadHealthRecords(selectedPet.id!);
+      Alert.alert("Deleted", "Health record removed");
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to delete record");
+    }
   };
 
   useEffect(() => {
     loadPets();
   }, []);
+
+  useEffect(() => {
+    if (selectedPet?.id) {
+      loadHealthRecords(selectedPet.id);
+    }
+  }, [selectedPet]);
 
   const recordTypes = [
     { value: 'vaccination', label: 'Vaccination', icon: 'vaccines', color: '#4CAF50' },
@@ -145,9 +170,10 @@ const Health = () => {
               Health Records for {selectedPet.name}
             </Text>
             
-            {healthRecords
-              .filter(record => record.petId === selectedPet.id)
-              .map((record) => {
+            {healthRecords.length === 0 ? (
+              <Text style={{ color: "#999" }}>No records yet</Text>
+            ) : (
+              healthRecords.map((record) => {
                 const recordType = recordTypes.find(t => t.value === record.type);
                 return (
                   <View key={record.id} style={{
@@ -181,9 +207,16 @@ const Health = () => {
                         Notes: {record.notes}
                       </Text>
                     )}
+                    <TouchableOpacity 
+                      onPress={() => handleDeleteRecord(record.id!)} 
+                      style={{ marginTop: 5 }}
+                    >
+                      <Text style={{ color: "red" }}>Delete</Text>
+                    </TouchableOpacity>
                   </View>
                 );
-              })}
+              })
+            )}
           </View>
         </>
       )}
@@ -310,7 +343,7 @@ const Health = () => {
               </TouchableOpacity>
               
               <TouchableOpacity
-                onPress={addHealthRecord}
+                onPress={handleAddRecord}
                 style={{
                   backgroundColor: '#FF6B6B',
                   padding: 12,
