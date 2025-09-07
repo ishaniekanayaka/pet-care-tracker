@@ -7,8 +7,15 @@ import { auth } from "../../firebase";
 import { getPetsByUser } from "../../services/petService";
 import { Pet } from "../../types/pet";
 
+// Feeding service imports
+import { 
+  addFeedingSchedule as addScheduleToDB, 
+  getFeedingSchedulesByPet, 
+  deleteFeedingSchedule as deleteScheduleFromDB 
+} from "../../services/feedingService";
+
 interface FeedingSchedule {
-  id: string;
+  id?: string;
   petId: string;
   foodType: string;
   amount: string;
@@ -30,6 +37,7 @@ const Diet = () => {
 
   const userId = auth.currentUser?.uid || "";
 
+  // Load pets
   const loadPets = async () => {
     if (!userId) return;
     const data = await getPetsByUser(userId);
@@ -39,24 +47,45 @@ const Diet = () => {
     }
   };
 
-  const addFeedingSchedule = () => {
+  // Load feeding schedules when pet changes
+  useEffect(() => {
+    const loadSchedules = async () => {
+      if (selectedPet) {
+        const schedules = await getFeedingSchedulesByPet(selectedPet.id!);
+        setFeedingSchedules(schedules);
+      }
+    };
+    loadSchedules();
+  }, [selectedPet]);
+
+  // Add feeding schedule
+  const addFeedingSchedule = async () => {
     if (!selectedPet || !newSchedule.foodType || !newSchedule.amount || !newSchedule.time) {
       Alert.alert("Error", "Please fill all required fields");
       return;
     }
 
-    const schedule: FeedingSchedule = {
-      id: Date.now().toString(),
-      petId: selectedPet.id!,
-      ...newSchedule,
-    };
+    try {
+      const id = await addScheduleToDB({
+        petId: selectedPet.id!,
+        ...newSchedule,
+      });
 
-    setFeedingSchedules([...feedingSchedules, schedule]);
-    setNewSchedule({ foodType: '', amount: '', time: '', frequency: 'daily' });
-    setShowAddModal(false);
-    Alert.alert("Success", "Feeding schedule added!");
+      setFeedingSchedules([
+        ...feedingSchedules,
+        { id, petId: selectedPet.id!, ...newSchedule },
+      ]);
+
+      setNewSchedule({ foodType: '', amount: '', time: '', frequency: 'daily' });
+      setShowAddModal(false);
+      Alert.alert("Success", "Feeding schedule added!");
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to add schedule.");
+    }
   };
 
+  // Delete feeding schedule
   const deleteFeedingSchedule = (scheduleId: string) => {
     Alert.alert(
       "Delete Schedule",
@@ -66,9 +95,15 @@ const Diet = () => {
         { 
           text: "Delete", 
           style: "destructive", 
-          onPress: () => {
-            setFeedingSchedules(feedingSchedules.filter(s => s.id !== scheduleId));
-            Alert.alert("Success", "Schedule deleted");
+          onPress: async () => {
+            try {
+              await deleteScheduleFromDB(scheduleId);
+              setFeedingSchedules(feedingSchedules.filter(s => s.id !== scheduleId));
+              Alert.alert("Success", "Schedule deleted");
+            } catch (error) {
+              console.error(error);
+              Alert.alert("Error", "Failed to delete schedule.");
+            }
           }
         },
       ]
@@ -181,7 +216,7 @@ const Diet = () => {
                       </Text>
                     </View>
                     <TouchableOpacity
-                      onPress={() => deleteFeedingSchedule(schedule.id)}
+                      onPress={() => deleteFeedingSchedule(schedule.id!)}
                       style={{
                         backgroundColor: '#FF4757',
                         padding: 8,
