@@ -8,6 +8,7 @@ const tabs = [
   { label: "Diet", name: "diet", icon: "restaurant" },
   { label: "Vets", name: "vets", icon: "local-hospital" },
   { label: "Profile", name: "profile", icon: "person" },
+  
 ];
 
 const DashboardLayout = () => {

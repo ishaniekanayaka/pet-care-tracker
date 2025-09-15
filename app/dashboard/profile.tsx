@@ -7,12 +7,38 @@ import {
   Image,
   ScrollView,
   StyleSheet,
-  Text, TextInput, TouchableOpacity,
-  View
+  Text, 
+  TextInput, 
+  TouchableOpacity,
+  View,
+  Modal,
+  TouchableWithoutFeedback,
+  Animated,
+  Easing
 } from "react-native";
 import { auth } from "../../firebase";
 import { addPet, deletePet, getPetsByUser, updatePet } from "../../services/petService";
 import { Pet, PetFormData } from "../../types/pet";
+
+// Breed options categorized by pet type
+const BREED_OPTIONS = {
+  dog: [
+    "Labrador Retriever", "German Shepherd", "Golden Retriever", "Bulldog", 
+    "Beagle", "Poodle", "Siberian Husky", "Boxer", "Dachshund", "Shih Tzu"
+  ],
+  cat: [
+    "Siamese", "Persian", "Maine Coon", "Bengal", "Sphynx", 
+    "British Shorthair", "Ragdoll", "Scottish Fold", "American Shorthair", "Russian Blue"
+  ],
+  bird: [
+    "Parakeet", "Cockatiel", "Lovebird", "Canary", "Finch", 
+    "Parrotlet", "Conure", "African Grey", "Macaw", "Cockatoo"
+  ],
+  other: [
+    "Rabbit", "Hamster", "Guinea Pig", "Turtle", "Snake",
+    "Lizard", "Fish", "Ferret", "Chinchilla", "Hedgehog"
+  ]
+};
 
 const Profile = () => {
   // State management
@@ -28,6 +54,14 @@ const Profile = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [petType, setPetType] = useState<string>("dog");
+  const [showBreedDropdown, setShowBreedDropdown] = useState(false);
+  const [showPetTypeDropdown, setShowPetTypeDropdown] = useState(false);
+
+  // Animation values
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const slideAnim = useState(new Animated.Value(0))[0];
+  const formHeight = useState(new Animated.Value(0))[0];
 
   const userId = auth.currentUser?.uid || "";
 
@@ -40,6 +74,7 @@ const Profile = () => {
       weight: "",
       image: undefined
     });
+    setPetType("dog");
     setEditingPetId(null);
     setShowAddForm(false);
   }, []);
@@ -47,6 +82,45 @@ const Profile = () => {
   const updateFormField = useCallback((field: keyof PetFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
+
+  // Animation functions
+  const animateFormIn = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(formHeight, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    ]).start();
+  }, [formHeight, fadeAnim]);
+
+  const animateFormOut = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(formHeight, {
+        toValue: 0,
+        duration: 250,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: false,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      if (editingPetId) {
+        resetForm();
+      } else {
+        setShowAddForm(false);
+      }
+    });
+  }, [formHeight, fadeAnim, editingPetId, resetForm]);
 
   // Data operations
   const loadPets = async (showLoader = false) => {
@@ -184,6 +258,15 @@ const Profile = () => {
       weight: String(pet.weight),
       image: pet.image
     });
+    
+    // Try to determine pet type from breed
+    const foundType = Object.entries(BREED_OPTIONS).find(([type, breeds]) => 
+      breeds.includes(pet.breed)
+    );
+    if (foundType) {
+      setPetType(foundType[0]);
+    }
+    
     setShowAddForm(true);
   };
 
@@ -219,6 +302,19 @@ const Profile = () => {
     );
   };
 
+  // Select breed from dropdown
+  const selectBreed = (breed: string) => {
+    updateFormField('breed', breed);
+    setShowBreedDropdown(false);
+  };
+
+  // Select pet type from dropdown
+  const selectPetType = (type: string) => {
+    setPetType(type);
+    setShowPetTypeDropdown(false);
+    updateFormField('breed', ''); // Reset breed when type changes
+  };
+
   // Effects
   useEffect(() => {
     if (userId) {
@@ -226,15 +322,27 @@ const Profile = () => {
     }
   }, [userId]);
 
+  useEffect(() => {
+    if (showAddForm) {
+      animateFormIn();
+    }
+  }, [showAddForm, animateFormIn]);
+
   // Calculated values
   const petCount = pets.length;
-  const dueVaccines = 2; // Replace with actual logic
-  const mealsToday = 3; // Replace with actual logic
+  const dueVaccines = pets.filter(pet => pet.age && pet.age < 2).length; // Young pets need vaccines
+  const mealsToday = pets.reduce((total, pet) => total + (pet.weight > 10 ? 2 : 3), 0); // Larger pets eat less frequently
+
+  // Interpolate form height for animation
+  const formInterpolation = formHeight.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 550] // Adjust based on your form height
+  });
 
   if (!userId) {
     return (
       <View style={styles.centerContainer}>
-        <MaterialIcons name="person-off" size={48} color="#ccc" />
+        <MaterialIcons name="person-off" size={48} color="#A8BBA3" />
         <Text style={styles.errorText}>Please log in to view your pets</Text>
       </View>
     );
@@ -253,17 +361,17 @@ const Profile = () => {
       {/* Quick Stats */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
-          <MaterialIcons name="pets" size={24} color="#007AFF" />
+          <MaterialIcons name="pets" size={24} color="#5D688A" />
           <Text style={styles.statNumber}>{petCount}</Text>
           <Text style={styles.statLabel}>Pets</Text>
         </View>
         <View style={styles.statCard}>
-          <MaterialIcons name="medical-services" size={24} color="#FF6B6B" />
+          <MaterialIcons name="medical-services" size={24} color="#896C6C" />
           <Text style={styles.statNumber}>{dueVaccines}</Text>
           <Text style={styles.statLabel}>Due Vaccines</Text>
         </View>
         <View style={styles.statCard}>
-          <MaterialIcons name="restaurant" size={24} color="#4ECDC4" />
+          <MaterialIcons name="restaurant" size={24} color="#A8BBA3" />
           <Text style={styles.statNumber}>{mealsToday}</Text>
           <Text style={styles.statLabel}>Meals Today</Text>
         </View>
@@ -272,10 +380,20 @@ const Profile = () => {
       {/* Add Pet Button */}
       <TouchableOpacity
         style={[styles.addButton, loading && styles.disabledButton]}
-        onPress={() => setShowAddForm(!showAddForm)}
+        onPress={() => {
+          if (showAddForm) {
+            animateFormOut();
+          } else {
+            setShowAddForm(true);
+          }
+        }}
         disabled={loading}
       >
-        <MaterialIcons name="add" size={24} color="white" />
+        <MaterialIcons 
+          name={showAddForm ? "close" : "add"} 
+          size={24} 
+          color="white" 
+        />
         <Text style={styles.addButtonText}>
           {showAddForm ? "Cancel" : "Add New Pet"}
         </Text>
@@ -283,7 +401,15 @@ const Profile = () => {
 
       {/* Add/Edit Pet Form */}
       {showAddForm && (
-        <View style={styles.formContainer}>
+        <Animated.View 
+          style={[
+            styles.formContainer, 
+            { 
+              opacity: fadeAnim,
+              height: formInterpolation 
+            }
+          ]}
+        >
           <Text style={styles.formTitle}>
             {editingPetId ? "Edit Pet" : "Add New Pet"}
           </Text>
@@ -295,13 +421,29 @@ const Profile = () => {
             style={styles.input}
             maxLength={50}
           />
-          <TextInput
-            placeholder="Breed"
-            value={formData.breed}
-            onChangeText={(value) => updateFormField('breed', value)}
-            style={styles.input}
-            maxLength={50}
-          />
+          
+          {/* Pet Type Selector */}
+          <TouchableOpacity 
+            style={styles.dropdownSelector}
+            onPress={() => setShowPetTypeDropdown(true)}
+          >
+            <Text style={formData.breed ? styles.dropdownTextSelected : styles.dropdownTextPlaceholder}>
+              {petType.charAt(0).toUpperCase() + petType.slice(1)}
+            </Text>
+            <MaterialIcons name="arrow-drop-down" size={24} color="#5D688A" />
+          </TouchableOpacity>
+          
+          {/* Breed Selector */}
+          <TouchableOpacity 
+            style={styles.dropdownSelector}
+            onPress={() => setShowBreedDropdown(true)}
+          >
+            <Text style={formData.breed ? styles.dropdownTextSelected : styles.dropdownTextPlaceholder}>
+              {formData.breed || "Select Breed"}
+            </Text>
+            <MaterialIcons name="arrow-drop-down" size={24} color="#5D688A" />
+          </TouchableOpacity>
+          
           <TextInput
             placeholder="Age (years)"
             value={formData.age}
@@ -359,31 +501,99 @@ const Profile = () => {
 
           {editingPetId && (
             <TouchableOpacity 
-              onPress={resetForm} 
+              onPress={() => animateFormOut()} 
               style={styles.cancelButton}
               disabled={loading}
             >
               <Text style={styles.cancelButtonText}>Cancel Edit</Text>
             </TouchableOpacity>
           )}
-        </View>
+        </Animated.View>
       )}
+
+      {/* Pet Type Dropdown Modal */}
+      <Modal
+        visible={showPetTypeDropdown}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowPetTypeDropdown(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowPetTypeDropdown(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.dropdownModal}>
+              <Text style={styles.dropdownTitle}>Select Pet Type</Text>
+              {Object.keys(BREED_OPTIONS).map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.dropdownItem,
+                    petType === type && styles.dropdownItemSelected
+                  ]}
+                  onPress={() => selectPetType(type)}
+                >
+                  <Text style={[
+                    styles.dropdownItemText,
+                    petType === type && styles.dropdownItemTextSelected
+                  ]}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Breed Dropdown Modal */}
+      <Modal
+        visible={showBreedDropdown}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowBreedDropdown(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowBreedDropdown(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.dropdownModal}>
+              <Text style={styles.dropdownTitle}>Select Breed</Text>
+              <ScrollView>
+                {BREED_OPTIONS[petType as keyof typeof BREED_OPTIONS].map((breed) => (
+                  <TouchableOpacity
+                    key={breed}
+                    style={[
+                      styles.dropdownItem,
+                      formData.breed === breed && styles.dropdownItemSelected
+                    ]}
+                    onPress={() => selectBreed(breed)}
+                  >
+                    <Text style={[
+                      styles.dropdownItemText,
+                      formData.breed === breed && styles.dropdownItemTextSelected
+                    ]}>
+                      {breed}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
       {/* Pets List */}
       <View style={styles.petsSection}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Your Pets</Text>
-          {refreshing && <ActivityIndicator size="small" color="#007AFF" />}
+          {refreshing && <ActivityIndicator size="small" color="#5D688A" />}
         </View>
         
         {loading && pets.length === 0 ? (
           <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
+            <ActivityIndicator size="large" color="#5D688A" />
             <Text style={styles.loadingText}>Loading your pets...</Text>
           </View>
         ) : pets.length === 0 ? (
           <View style={styles.emptyState}>
-            <MaterialIcons name="pets" size={48} color="#ccc" />
+            <MaterialIcons name="pets" size={48} color="#A8BBA3" />
             <Text style={styles.emptyText}>No pets added yet</Text>
             <Text style={styles.emptySubtext}>Add your first pet to get started!</Text>
           </View>
@@ -395,7 +605,7 @@ const Profile = () => {
                   <Image source={{ uri: pet.image }} style={styles.petImage} />
                 ) : (
                   <View style={styles.placeholderImage}>
-                    <MaterialIcons name="pets" size={32} color="#ccc" />
+                    <MaterialIcons name="pets" size={32} color="#A8BBA3" />
                   </View>
                 )}
                 <View style={styles.petDetails}>
@@ -434,7 +644,7 @@ const Profile = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F5F7F3",
   },
   centerContainer: {
     flex: 1,
@@ -443,7 +653,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#5D688A",
     padding: 20,
     paddingTop: 50,
     borderBottomLeftRadius: 20,
@@ -470,31 +680,37 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 15,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: "#5D688A",
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 5,
     minWidth: 80,
   },
   statNumber: {
     fontSize: 20,
     fontWeight: "bold",
     marginTop: 5,
+    color: "#5D688A",
   },
   statLabel: {
     fontSize: 12,
-    color: "#666",
+    color: "#896C6C",
     marginTop: 2,
   },
   addButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#A8BBA3",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     margin: 20,
     padding: 15,
     borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   addButtonText: {
     color: "white",
@@ -510,25 +726,47 @@ const styles = StyleSheet.create({
     margin: 20,
     padding: 20,
     borderRadius: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowColor: "#5D688A",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    overflow: 'hidden',
   },
   formTitle: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 15,
     textAlign: "center",
+    color: "#5D688A",
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#E0E0E0",
     padding: 12,
     marginBottom: 12,
     borderRadius: 8,
     fontSize: 16,
+    backgroundColor: "#F9F9F9",
+  },
+  dropdownSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    padding: 12,
+    marginBottom: 12,
+    borderRadius: 8,
+    backgroundColor: '#F9F9F9',
+  },
+  dropdownTextSelected: {
+    fontSize: 16,
+    color: '#5D688A',
+  },
+  dropdownTextPlaceholder: {
+    fontSize: 16,
+    color: '#9E9E9E',
   },
   imagePickerContainer: {
     flexDirection: "row",
@@ -536,7 +774,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   imageButton: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#5D688A",
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
@@ -546,7 +784,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cameraButton: {
-    backgroundColor: "#FF9800",
+    backgroundColor: "#896C6C",
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
@@ -566,12 +804,19 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignSelf: "center",
     marginBottom: 15,
+    borderWidth: 2,
+    borderColor: "#A8BBA3",
   },
   saveButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#5D688A",
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   saveButtonText: {
     color: "white",
@@ -579,7 +824,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   cancelButton: {
-    backgroundColor: "#6c757d",
+    backgroundColor: "#896C6C",
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
@@ -601,15 +846,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
+    color: "#5D688A",
   },
   loadingText: {
     marginTop: 10,
-    color: "#666",
+    color: "#896C6C",
     fontSize: 16,
   },
   errorText: {
     marginTop: 10,
-    color: "#666",
+    color: "#896C6C",
     fontSize: 16,
     textAlign: "center",
   },
@@ -618,16 +864,21 @@ const styles = StyleSheet.create({
     padding: 40,
     backgroundColor: "white",
     borderRadius: 15,
+    shadowColor: "#5D688A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#666",
+    color: "#5D688A",
     marginTop: 10,
   },
   emptySubtext: {
     fontSize: 14,
-    color: "#999",
+    color: "#896C6C",
     marginTop: 5,
   },
   petCard: {
@@ -638,7 +889,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    shadowColor: "#000",
+    shadowColor: "#5D688A",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -654,15 +905,19 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     marginRight: 15,
+    borderWidth: 2,
+    borderColor: "#A8BBA3",
   },
   placeholderImage: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#F0F5ED",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 15,
+    borderWidth: 2,
+    borderColor: "#A8BBA3",
   },
   petDetails: {
     flex: 1,
@@ -671,29 +926,71 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 2,
+    color: "#5D688A",
   },
   petBreed: {
     fontSize: 14,
-    color: "#666",
+    color: "#896C6C",
     marginBottom: 2,
   },
   petStats: {
     fontSize: 12,
-    color: "#999",
+    color: "#A8BBA3",
   },
   petActions: {
     flexDirection: "row",
   },
   editButton: {
-    backgroundColor: "#FFA500",
+    backgroundColor: "#5D688A",
     padding: 8,
     borderRadius: 8,
     marginRight: 8,
   },
   deleteButton: {
-    backgroundColor: "#FF4757",
+    backgroundColor: "#896C6C",
     padding: 8,
     borderRadius: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dropdownModal: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    width: '80%',
+    maxHeight: '60%',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  dropdownTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    color: '#5D688A',
+    textAlign: 'center',
+  },
+  dropdownItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  dropdownItemSelected: {
+    backgroundColor: '#F0F5ED',
+  },
+  dropdownItemText: {
+    fontSize: 16,
+    color: '#5D688A',
+  },
+  dropdownItemTextSelected: {
+    fontWeight: 'bold',
+    color: '#5D688A',
   },
 });
 
