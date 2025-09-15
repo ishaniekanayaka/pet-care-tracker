@@ -1,4 +1,3 @@
-
 import { Tabs } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import React from "react";
@@ -16,27 +15,67 @@ const DashboardLayout = () => {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: "#007AFF",
-        tabBarInactiveTintColor: "#999",
+        tabBarInactiveTintColor: "#666",
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#f8f8f8",
-          paddingBottom: 5,
+          display: 'flex',
+          backgroundColor: "#fff",
           height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+          borderTopWidth: 1,
+          borderTopColor: "#ddd",
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
         },
       }}
     >
-      {tabs.map(({ name, icon, label }) => (
-        <Tabs.Screen
-          key={name}
-          name={name}
-          options={{
-            title: label,
-            tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name={icon as any} color={color} size={size} />
-            ),
-          }}
-        />
-      ))}
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Home",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="home" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="health"
+        options={{
+          title: "Health",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="medical-services" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="diet"
+        options={{
+          title: "Diet",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="restaurant" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="vets"
+        options={{
+          title: "Vets",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="local-hospital" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="person" color={color} size={size} />
+          ),
+        }}
+      />
     </Tabs>
   );
 };
