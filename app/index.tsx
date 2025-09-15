@@ -19,7 +19,7 @@ const Index = () => {
           const key = `${STORAGE_KEYS.ONBOARDED}:${user.email}`;
           const seen = await AsyncStorage.getItem(key);
           if (seen) {
-            router.replace("/dashboard/home");
+            router.replace("/dashboard/Home/home");
           } else {
             router.replace("/welcome");
           }
