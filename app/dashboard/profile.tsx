@@ -14,11 +14,27 @@ import {
   Modal,
   TouchableWithoutFeedback,
   Animated,
-  Easing
+  Easing,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  RefreshControl,
+  Dimensions
 } from "react-native";
 import { auth } from "../../firebase";
 import { addPet, deletePet, getPetsByUser, updatePet } from "../../services/petService";
 import { Pet, PetFormData } from "../../types/pet";
+
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
+
+// Get screen dimensions
+const { width, height } = Dimensions.get('window');
+const isSmallScreen = width < 375;
 
 // Breed options categorized by pet type
 const BREED_OPTIONS = {
@@ -58,10 +74,9 @@ const Profile = () => {
   const [showBreedDropdown, setShowBreedDropdown] = useState(false);
   const [showPetTypeDropdown, setShowPetTypeDropdown] = useState(false);
 
-  // Animation values
+  // Animation values - use transform instead of height
   const fadeAnim = useState(new Animated.Value(0))[0];
-  const slideAnim = useState(new Animated.Value(0))[0];
-  const formHeight = useState(new Animated.Value(0))[0];
+  const slideAnim = useState(new Animated.Value(height))[0];
 
   const userId = auth.currentUser?.uid || "";
 
@@ -85,12 +100,14 @@ const Profile = () => {
 
   // Animation functions
   const animateFormIn = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    
     Animated.parallel([
-      Animated.timing(formHeight, {
-        toValue: 1,
+      Animated.timing(slideAnim, {
+        toValue: 0,
         duration: 300,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
+        useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -98,15 +115,17 @@ const Profile = () => {
         useNativeDriver: true,
       })
     ]).start();
-  }, [formHeight, fadeAnim]);
+  }, [slideAnim, fadeAnim]);
 
   const animateFormOut = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    
     Animated.parallel([
-      Animated.timing(formHeight, {
-        toValue: 0,
+      Animated.timing(slideAnim, {
+        toValue: height,
         duration: 250,
         easing: Easing.in(Easing.cubic),
-        useNativeDriver: false,
+        useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -120,7 +139,7 @@ const Profile = () => {
         setShowAddForm(false);
       }
     });
-  }, [formHeight, fadeAnim, editingPetId, resetForm]);
+  }, [slideAnim, fadeAnim, editingPetId, resetForm, height]);
 
   // Data operations
   const loadPets = async (showLoader = false) => {
@@ -169,11 +188,11 @@ const Profile = () => {
     return true;
   };
 
-  // Image picker functions
+  // Image picker functions - fixed deprecation warning
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaType.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
@@ -190,6 +209,7 @@ const Profile = () => {
   const takePhoto = async () => {
     try {
       const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaType.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
@@ -330,14 +350,8 @@ const Profile = () => {
 
   // Calculated values
   const petCount = pets.length;
-  const dueVaccines = pets.filter(pet => pet.age && pet.age < 2).length; // Young pets need vaccines
-  const mealsToday = pets.reduce((total, pet) => total + (pet.weight > 10 ? 2 : 3), 0); // Larger pets eat less frequently
-
-  // Interpolate form height for animation
-  const formInterpolation = formHeight.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 550] // Adjust based on your form height
-  });
+  const dueVaccines = pets.filter(pet => pet.age && pet.age < 2).length;
+  const mealsToday = pets.reduce((total, pet) => total + (pet.weight > 10 ? 2 : 3), 0);
 
   if (!userId) {
     return (
@@ -349,166 +363,251 @@ const Profile = () => {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>PawPal Dashboard 🐾</Text>
-        <Text style={styles.headerSubtitle}>
-          Welcome back! You have {petCount} pet{petCount !== 1 ? 's' : ''}
-        </Text>
-      </View>
-
-      {/* Quick Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <MaterialIcons name="pets" size={24} color="#5D688A" />
-          <Text style={styles.statNumber}>{petCount}</Text>
-          <Text style={styles.statLabel}>Pets</Text>
-        </View>
-        <View style={styles.statCard}>
-          <MaterialIcons name="medical-services" size={24} color="#896C6C" />
-          <Text style={styles.statNumber}>{dueVaccines}</Text>
-          <Text style={styles.statLabel}>Due Vaccines</Text>
-        </View>
-        <View style={styles.statCard}>
-          <MaterialIcons name="restaurant" size={24} color="#A8BBA3" />
-          <Text style={styles.statNumber}>{mealsToday}</Text>
-          <Text style={styles.statLabel}>Meals Today</Text>
-        </View>
-      </View>
-
-      {/* Add Pet Button */}
-      <TouchableOpacity
-        style={[styles.addButton, loading && styles.disabledButton]}
-        onPress={() => {
-          if (showAddForm) {
-            animateFormOut();
-          } else {
-            setShowAddForm(true);
-          }
-        }}
-        disabled={loading}
+    <View style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadPets()}
+            colors={["#5D688A"]}
+            tintColor="#5D688A"
+          />
+        }
       >
-        <MaterialIcons 
-          name={showAddForm ? "close" : "add"} 
-          size={24} 
-          color="white" 
-        />
-        <Text style={styles.addButtonText}>
-          {showAddForm ? "Cancel" : "Add New Pet"}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Add/Edit Pet Form */}
-      {showAddForm && (
-        <Animated.View 
-          style={[
-            styles.formContainer, 
-            { 
-              opacity: fadeAnim,
-              height: formInterpolation 
-            }
-          ]}
-        >
-          <Text style={styles.formTitle}>
-            {editingPetId ? "Edit Pet" : "Add New Pet"}
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>PawPal Dashboard 🐾</Text>
+          <Text style={styles.headerSubtitle}>
+            Welcome back! You have {petCount} pet{petCount !== 1 ? 's' : ''}
           </Text>
-          
-          <TextInput
-            placeholder="Pet Name"
-            value={formData.name}
-            onChangeText={(value) => updateFormField('name', value)}
-            style={styles.input}
-            maxLength={50}
-          />
-          
-          {/* Pet Type Selector */}
-          <TouchableOpacity 
-            style={styles.dropdownSelector}
-            onPress={() => setShowPetTypeDropdown(true)}
-          >
-            <Text style={formData.breed ? styles.dropdownTextSelected : styles.dropdownTextPlaceholder}>
-              {petType.charAt(0).toUpperCase() + petType.slice(1)}
-            </Text>
-            <MaterialIcons name="arrow-drop-down" size={24} color="#5D688A" />
-          </TouchableOpacity>
-          
-          {/* Breed Selector */}
-          <TouchableOpacity 
-            style={styles.dropdownSelector}
-            onPress={() => setShowBreedDropdown(true)}
-          >
-            <Text style={formData.breed ? styles.dropdownTextSelected : styles.dropdownTextPlaceholder}>
-              {formData.breed || "Select Breed"}
-            </Text>
-            <MaterialIcons name="arrow-drop-down" size={24} color="#5D688A" />
-          </TouchableOpacity>
-          
-          <TextInput
-            placeholder="Age (years)"
-            value={formData.age}
-            onChangeText={(value) => updateFormField('age', value)}
-            keyboardType="numeric"
-            style={styles.input}
-            maxLength={2}
-          />
-          <TextInput
-            placeholder="Weight (kg)"
-            value={formData.weight}
-            onChangeText={(value) => updateFormField('weight', value)}
-            keyboardType="decimal-pad"
-            style={styles.input}
-            maxLength={5}
-          />
+        </View>
 
-          {/* Image Picker */}
-          <View style={styles.imagePickerContainer}>
-            <TouchableOpacity 
-              onPress={pickImage} 
-              style={styles.imageButton}
-              disabled={loading}
-            >
-              <MaterialIcons name="photo-library" size={20} color="white" />
-              <Text style={styles.imageButtonText}>Gallery</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={takePhoto} 
-              style={styles.cameraButton}
-              disabled={loading}
-            >
-              <MaterialIcons name="camera-alt" size={20} color="white" />
-              <Text style={styles.imageButtonText}>Camera</Text>
-            </TouchableOpacity>
+        {/* Quick Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <MaterialIcons name="pets" size={isSmallScreen ? 20 : 24} color="#5D688A" />
+            <Text style={styles.statNumber}>{petCount}</Text>
+            <Text style={styles.statLabel}>Pets</Text>
           </View>
+          <View style={styles.statCard}>
+            <MaterialIcons name="medical-services" size={isSmallScreen ? 20 : 24} color="#896C6C" />
+            <Text style={styles.statNumber}>{dueVaccines}</Text>
+            <Text style={styles.statLabel}>Due Vaccines</Text>
+          </View>
+          <View style={styles.statCard}>
+            <MaterialIcons name="restaurant" size={isSmallScreen ? 20 : 24} color="#A8BBA3" />
+            <Text style={styles.statNumber}>{mealsToday}</Text>
+            <Text style={styles.statLabel}>Meals Today</Text>
+          </View>
+        </View>
 
-          {formData.image && (
-            <Image source={{ uri: formData.image }} style={styles.previewImage} />
+        {/* Add Pet Button */}
+        <TouchableOpacity
+          style={[styles.addButton, loading && styles.disabledButton]}
+          onPress={() => {
+            if (showAddForm) {
+              animateFormOut();
+            } else {
+              setShowAddForm(true);
+            }
+          }}
+          disabled={loading}
+        >
+          <MaterialIcons 
+            name={showAddForm ? "close" : "add"} 
+            size={isSmallScreen ? 20 : 24} 
+            color="white" 
+          />
+          <Text style={styles.addButtonText}>
+            {showAddForm ? "Cancel" : "Add New Pet"}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Pets List */}
+        <View style={styles.petsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Your Pets</Text>
+            {refreshing && <ActivityIndicator size="small" color="#5D688A" />}
+          </View>
+          
+          {loading && pets.length === 0 ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color="#5D688A" />
+              <Text style={styles.loadingText}>Loading your pets...</Text>
+            </View>
+          ) : pets.length === 0 ? (
+            <View style={styles.emptyState}>
+              <MaterialIcons name="pets" size={48} color="#A8BBA3" />
+              <Text style={styles.emptyText}>No pets added yet</Text>
+              <Text style={styles.emptySubtext}>Add your first pet to get started!</Text>
+            </View>
+          ) : (
+            pets.map((pet) => (
+              <View key={pet.id} style={styles.petCard}>
+                <View style={styles.petInfo}>
+                  {pet.image ? (
+                    <Image source={{ uri: pet.image }} style={styles.petImage} />
+                  ) : (
+                    <View style={styles.placeholderImage}>
+                      <MaterialIcons name="pets" size={32} color="#A8BBA3" />
+                    </View>
+                  )}
+                  <View style={styles.petDetails}>
+                    <Text style={styles.petName}>{pet.name}</Text>
+                    <Text style={styles.petBreed}>{pet.breed}</Text>
+                    <Text style={styles.petStats}>
+                      {pet.age} year{pet.age !== 1 ? 's' : ''} • {pet.weight}kg
+                    </Text>
+                  </View>
+                </View>
+                
+                <View style={styles.petActions}>
+                  <TouchableOpacity
+                    onPress={() => handleEditPet(pet)}
+                    style={[styles.editButton, loading && styles.disabledButton]}
+                    disabled={loading}
+                  >
+                    <MaterialIcons name="edit" size={isSmallScreen ? 16 : 20} color="white" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleDeletePet(pet)}
+                    style={[styles.deleteButton, loading && styles.disabledButton]}
+                    disabled={loading}
+                  >
+                    <MaterialIcons name="delete" size={isSmallScreen ? 16 : 20} color="white" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))
           )}
+        </View>
+      </ScrollView>
 
-          <TouchableOpacity
-            onPress={handleAddOrUpdatePet}
-            style={[styles.saveButton, loading && styles.disabledButton]}
-            disabled={loading}
+      {/* Add/Edit Pet Form - Fixed as overlay */}
+      {showAddForm && (
+        <View style={styles.formOverlay}>
+          <TouchableWithoutFeedback onPress={animateFormOut}>
+            <View style={styles.formBackdrop} />
+          </TouchableWithoutFeedback>
+          
+          <Animated.View 
+            style={[
+              styles.formContainer, 
+              { 
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
           >
-            {loading ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text style={styles.saveButtonText}>
-                {editingPetId ? "Update Pet" : "Save Pet"}
+            <View style={styles.formHeader}>
+              <Text style={styles.formTitle}>
+                {editingPetId ? "Edit Pet" : "Add New Pet"}
               </Text>
-            )}
-          </TouchableOpacity>
+              <TouchableOpacity onPress={animateFormOut} style={styles.closeButton}>
+                <MaterialIcons name="close" size={24} color="#5D688A" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.formScrollView} showsVerticalScrollIndicator={false}>
+              <TextInput
+                placeholder="Pet Name"
+                value={formData.name}
+                onChangeText={(value) => updateFormField('name', value)}
+                style={styles.input}
+                maxLength={50}
+              />
+              
+              {/* Pet Type Selector */}
+              <TouchableOpacity 
+                style={styles.dropdownSelector}
+                onPress={() => setShowPetTypeDropdown(true)}
+              >
+                <Text style={formData.breed ? styles.dropdownTextSelected : styles.dropdownTextPlaceholder}>
+                  {petType.charAt(0).toUpperCase() + petType.slice(1)}
+                </Text>
+                <MaterialIcons name="arrow-drop-down" size={24} color="#5D688A" />
+              </TouchableOpacity>
+              
+              {/* Breed Selector */}
+              <TouchableOpacity 
+                style={styles.dropdownSelector}
+                onPress={() => setShowBreedDropdown(true)}
+              >
+                <Text style={formData.breed ? styles.dropdownTextSelected : styles.dropdownTextPlaceholder}>
+                  {formData.breed || "Select Breed"}
+                </Text>
+                <MaterialIcons name="arrow-drop-down" size={24} color="#5D688A" />
+              </TouchableOpacity>
+              
+              <TextInput
+                placeholder="Age (years)"
+                value={formData.age}
+                onChangeText={(value) => updateFormField('age', value)}
+                keyboardType="numeric"
+                style={styles.input}
+                maxLength={2}
+              />
+              <TextInput
+                placeholder="Weight (kg)"
+                value={formData.weight}
+                onChangeText={(value) => updateFormField('weight', value)}
+                keyboardType="decimal-pad"
+                style={styles.input}
+                maxLength={5}
+              />
 
-          {editingPetId && (
-            <TouchableOpacity 
-              onPress={() => animateFormOut()} 
-              style={styles.cancelButton}
-              disabled={loading}
-            >
-              <Text style={styles.cancelButtonText}>Cancel Edit</Text>
-            </TouchableOpacity>
-          )}
-        </Animated.View>
+              {/* Image Picker */}
+              <View style={styles.imagePickerContainer}>
+                <TouchableOpacity 
+                  onPress={pickImage} 
+                  style={styles.imageButton}
+                  disabled={loading}
+                >
+                  <MaterialIcons name="photo-library" size={isSmallScreen ? 16 : 20} color="white" />
+                  <Text style={styles.imageButtonText}>Gallery</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={takePhoto} 
+                  style={styles.cameraButton}
+                  disabled={loading}
+                >
+                  <MaterialIcons name="camera-alt" size={isSmallScreen ? 16 : 20} color="white" />
+                  <Text style={styles.imageButtonText}>Camera</Text>
+                </TouchableOpacity>
+              </View>
+
+              {formData.image && (
+                <Image source={{ uri: formData.image }} style={styles.previewImage} />
+              )}
+
+              <TouchableOpacity
+                onPress={handleAddOrUpdatePet}
+                style={[styles.saveButton, loading && styles.disabledButton]}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={styles.saveButtonText}>
+                    {editingPetId ? "Update Pet" : "Save Pet"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              {editingPetId && (
+                <TouchableOpacity 
+                  onPress={() => animateFormOut()} 
+                  style={styles.cancelButton}
+                  disabled={loading}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel Edit</Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+          </Animated.View>
+        </View>
       )}
 
       {/* Pet Type Dropdown Modal */}
@@ -553,7 +652,7 @@ const Profile = () => {
       >
         <TouchableWithoutFeedback onPress={() => setShowBreedDropdown(false)}>
           <View style={styles.modalOverlay}>
-            <View style={styles.dropdownModal}>
+            <View style={[styles.dropdownModal, { maxHeight: height * 0.6 }]}>
               <Text style={styles.dropdownTitle}>Select Breed</Text>
               <ScrollView>
                 {BREED_OPTIONS[petType as keyof typeof BREED_OPTIONS].map((breed) => (
@@ -578,66 +677,7 @@ const Profile = () => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-
-      {/* Pets List */}
-      <View style={styles.petsSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Your Pets</Text>
-          {refreshing && <ActivityIndicator size="small" color="#5D688A" />}
-        </View>
-        
-        {loading && pets.length === 0 ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color="#5D688A" />
-            <Text style={styles.loadingText}>Loading your pets...</Text>
-          </View>
-        ) : pets.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialIcons name="pets" size={48} color="#A8BBA3" />
-            <Text style={styles.emptyText}>No pets added yet</Text>
-            <Text style={styles.emptySubtext}>Add your first pet to get started!</Text>
-          </View>
-        ) : (
-          pets.map((pet) => (
-            <View key={pet.id} style={styles.petCard}>
-              <View style={styles.petInfo}>
-                {pet.image ? (
-                  <Image source={{ uri: pet.image }} style={styles.petImage} />
-                ) : (
-                  <View style={styles.placeholderImage}>
-                    <MaterialIcons name="pets" size={32} color="#A8BBA3" />
-                  </View>
-                )}
-                <View style={styles.petDetails}>
-                  <Text style={styles.petName}>{pet.name}</Text>
-                  <Text style={styles.petBreed}>{pet.breed}</Text>
-                  <Text style={styles.petStats}>
-                    {pet.age} year{pet.age !== 1 ? 's' : ''} • {pet.weight}kg
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.petActions}>
-                <TouchableOpacity
-                  onPress={() => handleEditPet(pet)}
-                  style={[styles.editButton, loading && styles.disabledButton]}
-                  disabled={loading}
-                >
-                  <MaterialIcons name="edit" size={20} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDeletePet(pet)}
-                  style={[styles.deleteButton, loading && styles.disabledButton]}
-                  disabled={loading}
-                >
-                  <MaterialIcons name="delete" size={20} color="white" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
-        )}
-      </View>
-    </ScrollView>
+    </View>
   );
 };
 
@@ -645,6 +685,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F5F7F3",
+  },
+  scrollView: {
+    flex: 1,
   },
   centerContainer: {
     flex: 1,
@@ -686,6 +729,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     minWidth: 80,
+    flex: 1,
+    marginHorizontal: 5,
   },
   statNumber: {
     fontSize: 20,
@@ -697,6 +742,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#896C6C",
     marginTop: 2,
+    textAlign: 'center',
   },
   addButton: {
     backgroundColor: "#A8BBA3",
@@ -721,24 +767,47 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.6,
   },
+  formOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'flex-end',
+    zIndex: 1000,
+  },
+  formBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
   formContainer: {
     backgroundColor: "white",
-    margin: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 20,
-    borderRadius: 15,
-    shadowColor: "#5D688A",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    maxHeight: height * 0.85,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
     shadowRadius: 8,
-    elevation: 5,
-    overflow: 'hidden',
+    elevation: 10,
+  },
+  formHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
   },
   formTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 15,
-    textAlign: "center",
     color: "#5D688A",
+  },
+  closeButton: {
+    padding: 5,
+  },
+  formScrollView: {
+    maxHeight: height * 0.7,
   },
   input: {
     borderWidth: 1,
@@ -797,6 +866,7 @@ const styles = StyleSheet.create({
     color: "white",
     marginLeft: 5,
     fontWeight: "bold",
+    fontSize: 14,
   },
   previewImage: {
     width: 100,
@@ -817,6 +887,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+    marginTop: 10,
   },
   saveButtonText: {
     color: "white",
@@ -836,6 +907,7 @@ const styles = StyleSheet.create({
   },
   petsSection: {
     margin: 20,
+    marginBottom: 100, // Extra space for bottom navigation
   },
   sectionHeader: {
     flexDirection: "row",
