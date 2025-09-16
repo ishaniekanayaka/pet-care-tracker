@@ -48,7 +48,7 @@ const HealthIndex = () => {
     
     if (pet.id) {
       console.log('🔍 Navigating to:', `/(dashboard)/health/${pet.id}`);
-    
+      //router.push(`/(dashboard)/health/${pet.id}`);
       router.push(`/dashboard/health/${pet.id}`);
     } else {
       console.log('❌ Pet ID is missing!');
@@ -60,7 +60,7 @@ const HealthIndex = () => {
     <ScrollView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
       {/* Header */}
       <View style={{
-        backgroundColor: '#FF6B6B',
+        backgroundColor: '#896C6C',
         padding: 20,
         paddingTop: 50,
         borderBottomLeftRadius: 20,
@@ -117,7 +117,7 @@ const HealthIndex = () => {
             >
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
-                  <MaterialIcons name="pets" size={24} color="#FF6B6B" />
+                  <MaterialIcons name="pets" size={24} color="#896C6C" />
                   <Text style={{ fontSize: 18, fontWeight: 'bold', marginLeft: 10 }}>
                     {pet.name}
                   </Text>
@@ -128,8 +128,8 @@ const HealthIndex = () => {
                 </Text>
                 
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-                  <MaterialIcons name="medical-services" size={16} color="#4CAF50" />
-                  <Text style={{ color: '#4CAF50', fontSize: 12, marginLeft: 4 }}>
+                  <MaterialIcons name="medical-services" size={16} color="#A8BBA3" />
+                  <Text style={{ color: '#A8BBA3', fontSize: 12, marginLeft: 4 }}>
                     {healthCounts[pet.id!] || 0} health records
                   </Text>
                 </View>
@@ -158,21 +158,21 @@ const HealthIndex = () => {
             justifyContent: 'space-around',
           }}>
             <View style={{ alignItems: 'center' }}>
-              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#FF6B6B' }}>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#896C6C' }}>
                 {pets.length}
               </Text>
               <Text style={{ color: '#666', fontSize: 12 }}>Total Pets</Text>
             </View>
             
             <View style={{ alignItems: 'center' }}>
-              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#4CAF50' }}>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#A8BBA3' }}>
                 {Object.values(healthCounts).reduce((sum, count) => sum + count, 0)}
               </Text>
               <Text style={{ color: '#666', fontSize: 12 }}>Health Records</Text>
             </View>
             
             <View style={{ alignItems: 'center' }}>
-              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#2196F3' }}>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#5D688A' }}>
                 {Object.values(healthCounts).filter(count => count > 0).length}
               </Text>
               <Text style={{ color: '#666', fontSize: 12 }}>With Records</Text>

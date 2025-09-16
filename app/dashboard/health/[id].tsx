@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { 
-  View, Text, ScrollView, TouchableOpacity, Alert, TextInput, Modal 
+  View, Text, ScrollView, TouchableOpacity, Alert, TextInput, Modal, Image 
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { auth } from "../../../firebase";
-import { getPetById } from "../../../services/petService";
+// Import getPetById from healthService instead
+// import { getPetById } from "../../../services/petService";
 import { Pet } from "../../../types/pet";
 import { HealthRecord } from "../../../types/health";
 import { 
   addHealthRecord, 
   getHealthRecordsByPet, 
-  deleteHealthRecord 
+  deleteHealthRecord,
+  getPetById
 } from "../../../services/healthService";
 
 const PetHealthDetail = () => {
@@ -136,10 +138,10 @@ const PetHealthDetail = () => {
   }, [id]);
 
   const recordTypes = [
-    { value: 'vaccination', label: 'Vaccination', icon: 'vaccines', color: '#4CAF50' },
-    { value: 'checkup', label: 'Checkup', icon: 'medical-services', color: '#2196F3' },
-    { value: 'medication', label: 'Medication', icon: 'medication', color: '#FF9800' },
-    { value: 'treatment', label: 'Treatment', icon: 'healing', color: '#9C27B0' },
+    { value: 'vaccination', label: 'Vaccination', icon: 'vaccines', color: '#896C6C' },
+    { value: 'checkup', label: 'Checkup', icon: 'medical-services', color: '#5D688A' },
+    { value: 'medication', label: 'Medication', icon: 'medication', color: '#A8BBA3' },
+    { value: 'treatment', label: 'Treatment', icon: 'healing', color: '#896C6C' },
   ];
 
   if (loading) {
@@ -158,7 +160,7 @@ const PetHealthDetail = () => {
         <Text style={{ marginTop: 10, color: '#ff4444', fontSize: 16 }}>Pet not found</Text>
         <TouchableOpacity 
           onPress={() => router.back()} 
-          style={{ marginTop: 20, backgroundColor: '#FF6B6B', padding: 12, borderRadius: 8 }}
+          style={{ marginTop: 20, backgroundColor: '#5D688A', padding: 12, borderRadius: 8 }}
         >
           <Text style={{ color: 'white', fontWeight: 'bold' }}>Go Back</Text>
         </TouchableOpacity>
@@ -190,13 +192,18 @@ const PetHealthDetail = () => {
       <TouchableOpacity
         onPress={() => setShowAddModal(true)}
         style={{
-          backgroundColor: '#FF6B6B',
+          backgroundColor: '#5D688A',
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
           margin: 20,
           padding: 15,
           borderRadius: 12,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
         }}
       >
         <MaterialIcons name="add" size={24} color="white" />
@@ -262,7 +269,7 @@ const PetHealthDetail = () => {
                     📅 Date: {record.date}
                   </Text>
                   {record.nextDue && (
-                    <Text style={{ color: '#FF6B6B', marginBottom: 4 }}>
+                    <Text style={{ color: '#5D688A', marginBottom: 4 }}>
                       🔔 Next Due: {record.nextDue}
                     </Text>
                   )}
@@ -410,7 +417,7 @@ const PetHealthDetail = () => {
                 <TouchableOpacity
                   onPress={handleAddRecord}
                   style={{
-                    backgroundColor: '#FF6B6B',
+                    backgroundColor: '#5D688A',
                     padding: 15,
                     borderRadius: 8,
                     flex: 1,
