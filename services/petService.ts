@@ -45,7 +45,8 @@ import {
   deleteDoc, 
   updateDoc,
   DocumentData,
-  QuerySnapshot 
+  QuerySnapshot, 
+  getDoc
 } from "firebase/firestore";
 import { Pet } from "../types/pet";
 
@@ -174,22 +175,22 @@ export const updatePet = async (petId: string | undefined, petData: Partial<Pet>
 };
 
 // Additional utility functions for better UX
-export const getPetById = async (petId: string): Promise<Pet | null> => {
-  try {
-    const validatedPetId = validatePetId(petId);
-    const q = query(petsCollection, where("__name__", "==", validatedPetId));
-    const snapshot = await getDocs(q);
+// export const getPetById = async (petId: string): Promise<Pet | null> => {
+//   try {
+//     const validatedPetId = validatePetId(petId);
+//     const q = query(petsCollection, where("__name__", "==", validatedPetId));
+//     const snapshot = await getDocs(q);
     
-    if (snapshot.empty) {
-      return null;
-    }
+//     if (snapshot.empty) {
+//       return null;
+//     }
     
-    return transformDocumentToPet(snapshot.docs[0]);
-  } catch (error) {
-    console.error("Error fetching pet by ID:", error);
-    return null;
-  }
-};
+//     return transformDocumentToPet(snapshot.docs[0]);
+//   } catch (error) {
+//     console.error("Error fetching pet by ID:", error);
+//     return null;
+//   }
+// };
 
 export const batchDeletePets = async (petIds: string[]): Promise<{ success: string[], failed: string[] }> => {
   const results = { success: [] as string[], failed: [] as string[] };
@@ -205,4 +206,47 @@ export const batchDeletePets = async (petIds: string[]): Promise<{ success: stri
   }
   
   return results;
+};
+
+// Get a single pet by ID with debug logging
+export const getPetById = async (petId: string): Promise<Pet | null> => {
+  try {
+    console.log('🔍 getPetById called with ID:', petId);
+    console.log('🔍 Document path:', `pets/${petId}`);
+    
+    const petDocRef = doc(db, "pets", petId);
+    const petDoc = await getDoc(petDocRef);
+    
+    console.log('🔍 Document exists:', petDoc.exists());
+    
+    if (petDoc.exists()) {
+      const data = petDoc.data();
+      console.log('🔍 Raw document data:', data);
+      
+      const petData = {
+        id: petDoc.id,
+        ...data,
+      } as Pet;
+      
+      console.log('🔍 Formatted pet data:', petData);
+      return petData;
+    } else {
+      console.log('❌ No pet document found with ID:', petId);
+      
+      // Let's also check what pets exist in the collection
+      const { collection, getDocs } = await import("firebase/firestore");
+      const petsCollection = collection(db, "pets");
+      const allPets = await getDocs(petsCollection);
+      
+      console.log('🔍 All pets in collection:');
+      allPets.forEach(doc => {
+        console.log(`  - ID: ${doc.id}, Data:`, doc.data());
+      });
+      
+      return null;
+    }
+  } catch (error) {
+    console.error("❌ Error in getPetById:", error);
+    throw error;
+  }
 };
