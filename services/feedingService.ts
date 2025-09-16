@@ -1,6 +1,7 @@
 import { db } from "../firebase";
-import { collection, addDoc, getDocs, query, where, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, doc, deleteDoc, updateDoc, getDoc } from "firebase/firestore";
 import { FeedingSchedule } from "../types/feeding";
+import { Pet } from "@/types/pet";
 
 const feedingCollection = collection(db, "feedingSchedules");
 
@@ -11,6 +12,28 @@ export const addFeedingSchedule = async (schedule: FeedingSchedule) => {
     createdAt: new Date(),
   });
   return docRef.id;
+};
+
+export const getPetById = async (petId: string): Promise<Pet | null> => {
+  try {
+    console.log('Fetching pet with ID:', petId);
+    const petDoc = await getDoc(doc(db, "pets", petId));
+    
+    if (petDoc.exists()) {
+      const petData = {
+        id: petDoc.id,
+        ...petDoc.data(),
+      } as Pet;
+      console.log('Pet found:', petData);
+      return petData;
+    } else {
+      console.log("No pet found with ID:", petId);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching pet by ID:", error);
+    throw error; // Re-throw to handle in component
+  }
 };
 
 // Get feeding schedules for a pet
