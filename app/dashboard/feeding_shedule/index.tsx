@@ -12,42 +12,81 @@ import { getFeedingSchedulesByPet } from "../../../services/feedingService";
 const DietIndex = () => {
   const [pets, setPets] = useState<Pet[]>([]);
   const [feedingCounts, setFeedingCounts] = useState<{[key: string]: number}>({});
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const userId = auth.currentUser?.uid || "";
 
   // Load pets and their feeding schedule counts
   const loadPets = async () => {
-    if (!userId) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     
     try {
+      console.log('Loading pets for user:', userId);
       const data = await getPetsByUser(userId);
+      console.log('Loaded pets:', data);
       setPets(data);
 
       // Get feeding schedule counts for each pet
       const counts: {[key: string]: number} = {};
       for (const pet of data) {
         if (pet.id) {
-          const schedules = await getFeedingSchedulesByPet(pet.id);
-          counts[pet.id] = schedules.length;
+          try {
+            const schedules = await getFeedingSchedulesByPet(pet.id);
+            counts[pet.id] = schedules.length;
+            console.log(`Pet ${pet.name} (${pet.id}) has ${schedules.length} schedules`);
+          } catch (error) {
+            console.error(`Error loading schedules for pet ${pet.id}:`, error);
+            counts[pet.id] = 0;
+          }
         }
       }
       setFeedingCounts(counts);
     } catch (error) {
       console.error('Error loading pets:', error);
       Alert.alert("Error", "Failed to load pets");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     loadPets();
-  }, []);
+  }, [userId]);
 
   const handlePetSelect = (pet: Pet) => {
     if (pet.id) {
-     // router.push(`/(dashboard)/diet/${pet.id}`);
-     router.push(`/dashboard/feeding_shedule/[id]`)
+      console.log('Navigating to pet diet detail with ID:', pet.id);
+      console.log('Pet object:', pet);
+      
+      // Navigate to the pet's feeding schedule page with the actual pet ID
+      // Using non-null assertion since we already checked pet.id exists
+      router.push(`/dashboard/feeding_shedule/${pet.id!}` as any);
+      
+      // Alternative approaches:
+      // router.push({
+      //   pathname: '/dashboard/feeding_shedule/[id]',
+      //   params: { id: pet.id }
+      // });
+      
+      // Or using replace instead of push:
+      // router.replace(`/dashboard/feeding_shedule/${pet.id}`);
+    } else {
+      console.error('Pet ID is missing:', pet);
+      Alert.alert("Error", "Pet ID is missing. Please try refreshing the list.");
     }
   };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }}>
+        <MaterialIcons name="pets" size={48} color="#ccc" />
+        <Text style={{ marginTop: 10, color: '#666' }}>Loading pets...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
@@ -70,7 +109,7 @@ const DietIndex = () => {
       {/* Pet List */}
       <View style={{ margin: 20 }}>
         <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>
-          Select a Pet:
+          Select a Pet ({pets.length}):
         </Text>
 
         {pets.length === 0 ? (
@@ -79,6 +118,11 @@ const DietIndex = () => {
             padding: 30,
             borderRadius: 12,
             alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
           }}>
             <MaterialIcons name="pets" size={48} color="#ccc" />
             <Text style={{ color: '#999', fontSize: 16, marginTop: 10 }}>
@@ -117,13 +161,13 @@ const DietIndex = () => {
                 </View>
                 
                 <Text style={{ color: '#666', fontSize: 14 }}>
-                  {pet.breed} • {pet.age} years old
+                  {pet.breed} • {pet.age} years old • {pet.weight}kg
                 </Text>
                 
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
                   <MaterialIcons name="restaurant" size={16} color="#896C6C" />
-                  <Text style={{ color: '#896C6C', fontSize: 12, marginLeft: 4 }}>
-                    {feedingCounts[pet.id!] || 0} feeding schedules
+                  <Text style={{ color: '#896C6C', fontSize: 12, marginLeft: 4, fontWeight: '600' }}>
+                    {feedingCounts[pet.id!] || 0} feeding schedule{feedingCounts[pet.id!] !== 1 ? 's' : ''}
                   </Text>
                 </View>
               </View>
@@ -149,6 +193,11 @@ const DietIndex = () => {
             borderRadius: 12,
             flexDirection: 'row',
             justifyContent: 'space-around',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
           }}>
             <View style={{ alignItems: 'center' }}>
               <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#A8BBA3' }}>
@@ -173,6 +222,31 @@ const DietIndex = () => {
           </View>
         </View>
       )}
+
+      {/* Refresh Button */}
+      <View style={{ margin: 20, marginTop: 0 }}>
+        <TouchableOpacity 
+          onPress={loadPets}
+          style={{
+            backgroundColor: '#5D688A',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 15,
+            borderRadius: 12,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
+        >
+          <MaterialIcons name="refresh" size={20} color="white" />
+          <Text style={{ color: 'white', fontWeight: 'bold', marginLeft: 8 }}>
+            Refresh List
+          </Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 };
