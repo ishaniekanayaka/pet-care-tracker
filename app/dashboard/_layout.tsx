@@ -8,19 +8,20 @@ const DashboardLayout = () => {
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }} edges={['bottom']}>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: "#007AFF",
+          tabBarActiveTintColor: "#5D688A",
           tabBarInactiveTintColor: "#666",
           headerShown: false,
           tabBarStyle: {
             backgroundColor: "#fff",
-            height: 70, // thawa udata
-            paddingBottom: 16, // extra bottom padding
+            height: 70,
+            paddingBottom: 16,
             paddingTop: 8,
             borderTopWidth: 1,
             borderTopColor: "#ddd",
           },
           tabBarLabelStyle: {
             fontSize: 12,
+            fontWeight: "500",
           },
         }}
       >
@@ -34,6 +35,15 @@ const DashboardLayout = () => {
           }}
         />
         <Tabs.Screen
+          name="settings"
+          options={{
+            title: "Settings",
+            tabBarIcon: ({ color, size }) => (
+              <MaterialIcons name="settings" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="health"
           options={{
             title: "Health",
@@ -43,9 +53,9 @@ const DashboardLayout = () => {
           }}
         />
         <Tabs.Screen
-          name="diet"
+          name="feeding_shedule"
           options={{
-            title: "Feeding-schedule",
+            title: "Diet",
             tabBarIcon: ({ color, size }) => (
               <MaterialIcons name="restaurant" color={color} size={size} />
             ),
