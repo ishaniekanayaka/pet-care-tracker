@@ -72,24 +72,24 @@ const ProfileIndex = () => {
   }
 
   return (
-    <ScrollView 
-      style={{ flex: 1, backgroundColor: '#F5F7F3' }}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => loadPets()}
-          colors={["#5D688A"]}
-          tintColor="#5D688A"
-        />
-      }
-    >
-      {/* Header */}
+    <View style={{ flex: 1, backgroundColor: '#F5F7F3' }}>
+      {/* Sticky Header */}
       <View style={{
         backgroundColor: '#5D688A',
         padding: 20,
         paddingTop: 50,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 10,
       }}>
         <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'white' }}>
           PawPal Dashboard 🐾
@@ -99,213 +99,229 @@ const ProfileIndex = () => {
         </Text>
       </View>
 
-      {/* Quick Stats */}
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        margin: 20,
-        marginTop: -30,
-      }}>
-        <View style={{
-          backgroundColor: 'white',
-          padding: 15,
-          borderRadius: 15,
-          alignItems: 'center',
-          shadowColor: '#5D688A',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 5,
-          minWidth: 80,
-          flex: 1,
-          marginHorizontal: 5,
-        }}>
-          <MaterialIcons name="pets" size={24} color="#5D688A" />
-          <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 5, color: '#5D688A' }}>
-            {petCount}
-          </Text>
-          <Text style={{ fontSize: 12, color: '#896C6C', marginTop: 2, textAlign: 'center' }}>
-            Pets
-          </Text>
-        </View>
-        
-        <View style={{
-          backgroundColor: 'white',
-          padding: 15,
-          borderRadius: 15,
-          alignItems: 'center',
-          shadowColor: '#5D688A',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 5,
-          minWidth: 80,
-          flex: 1,
-          marginHorizontal: 5,
-        }}>
-          <MaterialIcons name="cake" size={24} color="#896C6C" />
-          <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 5, color: '#5D688A' }}>
-            {avgAge}
-          </Text>
-          <Text style={{ fontSize: 12, color: '#896C6C', marginTop: 2, textAlign: 'center' }}>
-            Avg Age
-          </Text>
-        </View>
-        
-        <View style={{
-          backgroundColor: 'white',
-          padding: 15,
-          borderRadius: 15,
-          alignItems: 'center',
-          shadowColor: '#5D688A',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 5,
-          minWidth: 80,
-          flex: 1,
-          marginHorizontal: 5,
-        }}>
-          <MaterialIcons name="monitor-weight" size={24} color="#A8BBA3" />
-          <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 5, color: '#5D688A' }}>
-            {totalWeight}
-          </Text>
-          <Text style={{ fontSize: 12, color: '#896C6C', marginTop: 2, textAlign: 'center' }}>
-            Total kg
-          </Text>
-        </View>
-      </View>
-
-      {/* Add Pet Button */}
-      <TouchableOpacity
-        onPress={handleAddNewPet}
-        style={{
-          backgroundColor: '#A8BBA3',
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: 20,
-          padding: 15,
-          borderRadius: 12,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.2,
-          shadowRadius: 4,
-          elevation: 3,
-        }}
+      {/* Scrollable Content */}
+      <ScrollView 
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingTop: 120 }} // Add padding to account for sticky header
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadPets()}
+            colors={["#5D688A"]}
+            tintColor="#5D688A"
+            progressViewOffset={120} // Adjust refresh control position
+          />
+        }
       >
-        <MaterialIcons name="add" size={24} color="white" />
-        <Text style={{ color: 'white', fontWeight: 'bold', marginLeft: 8, fontSize: 16 }}>
-          Add New Pet
-        </Text>
-      </TouchableOpacity>
-
-      {/* Pet List */}
-      <View style={{ margin: 20, marginTop: 0 }}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: '#5D688A' }}>
-          Your Pets ({pets.length})
-        </Text>
-
-        {pets.length === 0 ? (
+        {/* Quick Stats */}
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-around',
+          margin: 20,
+          marginTop: 10, // Reduced top margin since header is sticky
+        }}>
           <View style={{
             backgroundColor: 'white',
-            padding: 40,
+            padding: 15,
             borderRadius: 15,
             alignItems: 'center',
             shadowColor: '#5D688A',
-            shadowOffset: { width: 0, height: 2 },
+            shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 3,
+            shadowRadius: 8,
+            elevation: 5,
+            minWidth: 80,
+            flex: 1,
+            marginHorizontal: 5,
           }}>
-            <MaterialIcons name="pets" size={48} color="#A8BBA3" />
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#5D688A', marginTop: 10 }}>
-              No pets added yet
+            <MaterialIcons name="pets" size={24} color="#5D688A" />
+            <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 5, color: '#5D688A' }}>
+              {petCount}
             </Text>
-            <Text style={{ fontSize: 14, color: '#896C6C', marginTop: 5 }}>
-              Add your first pet to get started!
+            <Text style={{ fontSize: 12, color: '#896C6C', marginTop: 2, textAlign: 'center' }}>
+              Pets
             </Text>
           </View>
-        ) : (
-          pets.map((pet) => (
-            <TouchableOpacity
-              key={pet.id}
-              onPress={() => handlePetSelect(pet)}
-              style={{
-                backgroundColor: 'white',
-                padding: 15,
-                borderRadius: 15,
-                marginBottom: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                shadowColor: '#5D688A',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: 3,
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                {pet.image ? (
-                  <Image 
-                    source={{ uri: pet.image }} 
-                    style={{
+          
+          <View style={{
+            backgroundColor: 'white',
+            padding: 15,
+            borderRadius: 15,
+            alignItems: 'center',
+            shadowColor: '#5D688A',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 5,
+            minWidth: 80,
+            flex: 1,
+            marginHorizontal: 5,
+          }}>
+            <MaterialIcons name="cake" size={24} color="#896C6C" />
+            <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 5, color: '#5D688A' }}>
+              {avgAge}
+            </Text>
+            <Text style={{ fontSize: 12, color: '#896C6C', marginTop: 2, textAlign: 'center' }}>
+              Avg Age
+            </Text>
+          </View>
+          
+          <View style={{
+            backgroundColor: 'white',
+            padding: 15,
+            borderRadius: 15,
+            alignItems: 'center',
+            shadowColor: '#5D688A',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 5,
+            minWidth: 80,
+            flex: 1,
+            marginHorizontal: 5,
+          }}>
+            <MaterialIcons name="monitor-weight" size={24} color="#A8BBA3" />
+            <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 5, color: '#5D688A' }}>
+              {totalWeight}
+            </Text>
+            <Text style={{ fontSize: 12, color: '#896C6C', marginTop: 2, textAlign: 'center' }}>
+              Total kg
+            </Text>
+          </View>
+        </View>
+
+        {/* Add Pet Button */}
+        <TouchableOpacity
+          onPress={handleAddNewPet}
+          style={{
+            backgroundColor: '#A8BBA3',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: 20,
+            padding: 15,
+            borderRadius: 12,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
+        >
+          <MaterialIcons name="add" size={24} color="white" />
+          <Text style={{ color: 'white', fontWeight: 'bold', marginLeft: 8, fontSize: 16 }}>
+            Add New Pet
+          </Text>
+        </TouchableOpacity>
+
+        {/* Pet List */}
+        <View style={{ margin: 20, marginTop: 0, paddingBottom: 20 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: '#5D688A' }}>
+            Your Pets ({pets.length})
+          </Text>
+
+          {pets.length === 0 ? (
+            <View style={{
+              backgroundColor: 'white',
+              padding: 40,
+              borderRadius: 15,
+              alignItems: 'center',
+              shadowColor: '#5D688A',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 3,
+            }}>
+              <MaterialIcons name="pets" size={48} color="#A8BBA3" />
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#5D688A', marginTop: 10 }}>
+                No pets added yet
+              </Text>
+              <Text style={{ fontSize: 14, color: '#896C6C', marginTop: 5 }}>
+                Add your first pet to get started!
+              </Text>
+            </View>
+          ) : (
+            pets.map((pet) => (
+              <TouchableOpacity
+                key={pet.id}
+                onPress={() => handlePetSelect(pet)}
+                style={{
+                  backgroundColor: 'white',
+                  padding: 15,
+                  borderRadius: 15,
+                  marginBottom: 12,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  shadowColor: '#5D688A',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 3,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  {pet.image ? (
+                    <Image 
+                      source={{ uri: pet.image }} 
+                      style={{
+                        width: 60,
+                        height: 60,
+                        borderRadius: 30,
+                        marginRight: 15,
+                        borderWidth: 2,
+                        borderColor: '#A8BBA3',
+                      }}
+                    />
+                  ) : (
+                    <View style={{
                       width: 60,
                       height: 60,
                       borderRadius: 30,
+                      backgroundColor: '#F0F5ED',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       marginRight: 15,
                       borderWidth: 2,
                       borderColor: '#A8BBA3',
-                    }}
-                  />
-                ) : (
-                  <View style={{
-                    width: 60,
-                    height: 60,
-                    borderRadius: 30,
-                    backgroundColor: '#F0F5ED',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: 15,
-                    borderWidth: 2,
-                    borderColor: '#A8BBA3',
-                  }}>
-                    <MaterialIcons name="pets" size={32} color="#A8BBA3" />
+                    }}>
+                      <MaterialIcons name="pets" size={32} color="#A8BBA3" />
+                    </View>
+                  )}
+                  
+                  <View style={{ flex: 1 }}>
+                    <Text style={{
+                      fontSize: 18,
+                      fontWeight: 'bold',
+                      marginBottom: 2,
+                      color: '#5D688A',
+                    }}>
+                      {pet.name}
+                    </Text>
+                    <Text style={{
+                      fontSize: 14,
+                      color: '#896C6C',
+                      marginBottom: 2,
+                    }}>
+                      {pet.breed}
+                    </Text>
+                    <Text style={{
+                      fontSize: 12,
+                      color: '#A8BBA3',
+                    }}>
+                      {pet.age} year{pet.age !== 1 ? 's' : ''} • {pet.weight}kg
+                    </Text>
                   </View>
-                )}
-                
-                <View style={{ flex: 1 }}>
-                  <Text style={{
-                    fontSize: 18,
-                    fontWeight: 'bold',
-                    marginBottom: 2,
-                    color: '#5D688A',
-                  }}>
-                    {pet.name}
-                  </Text>
-                  <Text style={{
-                    fontSize: 14,
-                    color: '#896C6C',
-                    marginBottom: 2,
-                  }}>
-                    {pet.breed}
-                  </Text>
-                  <Text style={{
-                    fontSize: 12,
-                    color: '#A8BBA3',
-                  }}>
-                    {pet.age} year{pet.age !== 1 ? 's' : ''} • {pet.weight}kg
-                  </Text>
                 </View>
-              </View>
-              
-              <MaterialIcons name="arrow-forward-ios" size={20} color="#A8BBA3" />
-            </TouchableOpacity>
-          ))
-        )}
-      </View>
-    </ScrollView>
+                
+                <MaterialIcons name="arrow-forward-ios" size={20} color="#A8BBA3" />
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 

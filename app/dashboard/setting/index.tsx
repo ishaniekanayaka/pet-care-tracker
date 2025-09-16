@@ -1,43 +1,28 @@
 import React, { useState } from "react";
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert, 
-  TextInput, 
-  Modal 
-} from "react-native";
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { logout } from "@/services/authService";
-import { 
-  sendPasswordResetEmail, 
-  updatePassword, 
-  EmailAuthProvider, 
-  reauthenticateWithCredential 
-} from "firebase/auth";
-import { auth } from "@/firebase";
-import Animated, { FadeInUp } from "react-native-reanimated";
+import { auth, updatePassword } from "@/firebase";
+import { sendPasswordResetEmail, signOut, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 
 export default function SettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-
-  // For change password modal
-  const [modalVisible, setModalVisible] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
+  // Logout
   const handleLogout = async () => {
     try {
-      await logout();
-      router.replace("/login"); // back to login screen
+      await signOut(auth);
+      router.replace("/login"); // Navigate to login page
     } catch (error: any) {
       Alert.alert("Error", error.message);
     }
   };
 
-  const handleResetPassword = async () => {
+  // Password reset via email
+  const handleResetPasswordEmail = async () => {
     const email = auth.currentUser?.email;
     if (!email) {
       Alert.alert("Error", "No email found for this account.");
@@ -46,7 +31,10 @@ export default function SettingsPage() {
     try {
       setLoading(true);
       await sendPasswordResetEmail(auth, email);
-      Alert.alert("Success", "Password reset email sent to " + email);
+      Alert.alert(
+        "Check your inbox",
+        `We sent a password reset link to ${email}. Open it in your email client to change your password.`
+      );
     } catch (error: any) {
       Alert.alert("Error", error.message);
     } finally {
@@ -54,159 +42,133 @@ export default function SettingsPage() {
     }
   };
 
-  const handleChangePassword = async () => {
-    const user = auth.currentUser;
-    if (user && user.email) {
-      try {
-        // re-authenticate with old password
-        const credential = EmailAuthProvider.credential(user.email, oldPassword);
-        await reauthenticateWithCredential(user, credential);
+  // In-app password change (old password verification)
+  const handleChangePasswordInApp = async () => {
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      Alert.alert("Error", "All fields are required.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error", "New password and confirm password do not match.");
+      return;
+    }
 
-        // update password
-        await updatePassword(user, newPassword);
-        Alert.alert("Success", "Password updated successfully!");
-        setModalVisible(false);
-        setOldPassword("");
-        setNewPassword("");
-      } catch (error: any) {
-        if (error.code === "auth/wrong-password") {
-          Alert.alert("Error", "Old password is incorrect.");
-        } else if (error.code === "auth/weak-password") {
-          Alert.alert("Error", "New password is too weak.");
-        } else {
-          Alert.alert("Error", error.message);
-        }
-      }
-    } else {
+    const user = auth.currentUser;
+    if (!user || !user.email) {
       Alert.alert("Error", "No user logged in.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // Reauthenticate user with old password
+      const credential = EmailAuthProvider.credential(user.email, oldPassword);
+      await reauthenticateWithCredential(user, credential);
+
+      // Update password
+      await updatePassword(user, newPassword);
+      Alert.alert("Success", "Password updated successfully!");
+      // Clear input fields
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Animated.View style={styles.container} entering={FadeInUp.duration(600)}>
+    <View style={styles.container}>
       <Text style={styles.header}>⚙️ Settings</Text>
 
-      {/* Reset Password */}
-      <TouchableOpacity style={styles.button} onPress={handleResetPassword}>
-        <Text style={styles.buttonText}>
-          {loading ? "Sending..." : "Reset Password (via Email)"}
-        </Text>
+      {/* In-app Password Change */}
+      <Text style={styles.subHeader}>Change Password (In-App)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Old Password"
+        secureTextEntry
+        value={oldPassword}
+        onChangeText={setOldPassword}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="New Password"
+        secureTextEntry
+        value={newPassword}
+        onChangeText={setNewPassword}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Confirm New Password"
+        secureTextEntry
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+      />
+      <TouchableOpacity style={styles.button} onPress={handleChangePasswordInApp}>
+        <Text style={styles.buttonText}>{loading ? "Updating..." : "Update Password"}</Text>
       </TouchableOpacity>
 
-      {/* Change Password (In-App) */}
-      <TouchableOpacity 
-        style={[styles.button, { backgroundColor: "#10b981" }]} 
-        onPress={() => setModalVisible(true)}
+      {/* Email-based Password Reset */}
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: "#f59e0b", marginTop: 20 }]}
+        onPress={handleResetPasswordEmail}
       >
-        <Text style={styles.buttonText}>Change Password (In-App)</Text>
+        <Text style={styles.buttonText}>{loading ? "Sending..." : "Reset Password via Email"}</Text>
       </TouchableOpacity>
 
       {/* Logout */}
-      <TouchableOpacity 
-        style={[styles.button, { backgroundColor: "#ef4444" }]} 
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: "#ef4444", marginTop: 20 }]}
         onPress={handleLogout}
       >
         <Text style={styles.buttonText}>Logout</Text>
       </TouchableOpacity>
-
-      {/* Change Password Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>🔑 Change Password</Text>
-            
-            <TextInput
-              placeholder="Old Password"
-              secureTextEntry
-              value={oldPassword}
-              onChangeText={setOldPassword}
-              style={styles.input}
-            />
-            <TextInput
-              placeholder="New Password"
-              secureTextEntry
-              value={newPassword}
-              onChangeText={setNewPassword}
-              style={styles.input}
-            />
-
-            <TouchableOpacity style={styles.modalButton} onPress={handleChangePassword}>
-              <Text style={styles.modalButtonText}>Update Password</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.modalButton, { backgroundColor: "#9ca3af" }]} 
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.modalButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
     backgroundColor: "#f9fafb",
   },
   header: {
     fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 30,
-    textAlign: "center",
+    marginBottom: 20,
     color: "#111827",
+  },
+  subHeader: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 10,
+    color: "#374151",
+    alignSelf: "flex-start",
+  },
+  input: {
+    width: "100%",
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 10,
+    marginVertical: 5,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
   },
   button: {
     backgroundColor: "#3b82f6",
     padding: 15,
     borderRadius: 12,
-    marginBottom: 15,
+    width: "100%",
+    alignItems: "center",
   },
   buttonText: {
     color: "#fff",
-    fontSize: 18,
-    textAlign: "center",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContainer: {
-    backgroundColor: "#fff",
-    width: "85%",
-    padding: 20,
-    borderRadius: 16,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 15,
-  },
-  modalButton: {
-    backgroundColor: "#3b82f6",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  modalButtonText: {
-    color: "#fff",
-    textAlign: "center",
     fontSize: 16,
+    fontWeight: "600",
   },
 });
