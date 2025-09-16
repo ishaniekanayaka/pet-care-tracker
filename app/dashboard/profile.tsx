@@ -189,39 +189,56 @@ const Profile = () => {
   };
 
   // Image picker functions - fixed deprecation warning
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.7,
-      });
+  // Replace the existing pickImage and takePhoto functions with these:
 
-      if (!result.canceled) {
-        updateFormField('image', result.assets[0].uri);
-      }
-    } catch (error) {
-      Alert.alert("Error", "Failed to pick image");
+const pickImage = async () => {
+  try {
+    // Request permissions first
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Please allow access to your photo library');
+      return;
     }
-  };
 
-  const takePhoto = async () => {
-    try {
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaType.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.7,
-      });
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
 
-      if (!result.canceled) {
-        updateFormField('image', result.assets[0].uri);
-      }
-    } catch (error) {
-      Alert.alert("Error", "Failed to take photo");
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      updateFormField('image', result.assets[0].uri);
     }
-  };
+  } catch (error) {
+    console.error('Error picking image:', error);
+    Alert.alert("Error", "Failed to pick image");
+  }
+};
+
+const takePhoto = async () => {
+  try {
+    // Request permissions first
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission required', 'Please allow camera access');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      updateFormField('image', result.assets[0].uri);
+    }
+  } catch (error) {
+    console.error('Error taking photo:', error);
+    Alert.alert("Error", "Failed to take photo");
+  }
+};
 
   // CRUD operations
   const handleAddOrUpdatePet = async () => {
