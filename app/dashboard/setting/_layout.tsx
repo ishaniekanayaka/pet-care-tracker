@@ -1,22 +1,14 @@
 import { Stack } from "expo-router";
+import React from "react";
 
 export default function SettingsLayout() {
   return (
-    <Stack>
-      <Stack.Screen 
-        name="index" 
-        options={{ 
-          headerShown: true,
-          title: 'Settings',
-          headerStyle: {
-            backgroundColor: '#5D688A',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }} 
-      />
-    </Stack>
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: "#f8fafc" },
+        headerTintColor: "#111827",
+        headerTitleStyle: { fontWeight: "bold" },
+      }}
+    />
   );
 }
