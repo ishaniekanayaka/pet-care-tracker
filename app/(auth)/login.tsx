@@ -37,7 +37,7 @@ const Login = () => {
       const seen = await AsyncStorage.getItem(key);
 
       if (seen) {
-        router.replace("/dashboard/home");
+        router.replace("/dashboard/profile");
       } else {
         router.replace("/welcome");
       }
