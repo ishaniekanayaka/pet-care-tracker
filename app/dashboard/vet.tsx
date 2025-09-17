@@ -11,7 +11,7 @@ interface VetClinic {
   id?: string;
   name: string;
   address: string;
-  phone: string;
+  phone?: string;
   rating?: number;
   distance?: string;
   emergency?: boolean;
@@ -63,7 +63,11 @@ const Vets = () => {
       
       if (selectedDistrict) {
         // Load vets from specific district
-        vetsData = await getVetsByDistrict(selectedDistrict);
+        const vetsRaw = await getVetsByDistrict(selectedDistrict);
+        vetsData = vetsRaw.map(vet => ({
+          ...vet,
+          phone: vet.name || vet.contact || '', // Ensure phone property exists
+        }));
       } else {
         // Load all vets
         vetsData = await getAllVets();
