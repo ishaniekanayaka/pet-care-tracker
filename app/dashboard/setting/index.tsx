@@ -58,27 +58,28 @@ export default function SettingsPage() {
   }, []);
 
   // Logout
-  const handleLogout = async () => {
-    Alert.alert(
-      "Confirm Logout",
-      "Are you sure you want to logout?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Logout", 
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await signOut(auth);
-              router.replace("/login");
-            } catch (error: any) {
-              Alert.alert("Error", error.message);
-            }
+  const handleLogout = () => {
+  Alert.alert(
+    "Confirm Logout",
+    "Are you sure you want to logout?",
+    [
+      { text: "Cancel", style: "cancel" },
+      { 
+        text: "Logout", 
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await signOut(auth);
+            router.replace("../../../service/authService/logn"); // Redirect to login page
+          } catch (error: any) {
+            Alert.alert("Error", error.message);
           }
         }
-      ]
-    );
-  };
+      }
+    ]
+  );
+};
+
 
   // Password reset via email
   const handleResetPasswordEmail = async () => {
