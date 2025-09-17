@@ -102,7 +102,7 @@ const ProfileIndex = () => {
       {/* Scrollable Content */}
       <ScrollView 
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: 120 }} // Add padding to account for sticky header
+        contentContainerStyle={{ paddingTop: 120 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -110,7 +110,7 @@ const ProfileIndex = () => {
             onRefresh={() => loadPets()}
             colors={["#5D688A"]}
             tintColor="#5D688A"
-            progressViewOffset={120} // Adjust refresh control position
+            progressViewOffset={120}
           />
         }
       >
@@ -119,7 +119,7 @@ const ProfileIndex = () => {
           flexDirection: 'row',
           justifyContent: 'space-around',
           margin: 20,
-          marginTop: 10, // Reduced top margin since header is sticky
+          marginTop: 10,
         }}>
           <View style={{
             backgroundColor: 'white',
