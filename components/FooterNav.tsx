@@ -4,9 +4,7 @@ import { useRouter, useSegments } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const tabs = [
-  { label: "Home", path: "/dashboard/index", icon: "home" },
-  { label: "Health", path: "/dashboard/health", icon: "medical-services" },
-  { label: "Diet", path: "/dashboard/feeding_shedule", icon: "restaurant" },
+  
   { label: "Vets", path: "/dashboard/vets", icon: "emergency" }, // 🩺 emergency icon
   { label: "Settings", path: "/dashboard/settings", icon: "settings-applications" },
   { label: "Profile", path: "/dashboard/profile", icon: "person" },

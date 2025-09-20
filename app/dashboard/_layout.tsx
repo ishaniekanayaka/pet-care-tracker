@@ -11,7 +11,7 @@ const DashboardLayout = () => {
           tabBarActiveTintColor: "#5D688A",
           tabBarInactiveTintColor: "#666",
           headerShown: false,
-          tabBarShowLabel: true, // 👈 Text names hide karanna
+          tabBarShowLabel: false, // 👈 Text names hide karanna
           tabBarStyle: {
             backgroundColor: "#fff",
             height: 70,
@@ -31,7 +31,7 @@ const DashboardLayout = () => {
           }}
         />
         <Tabs.Screen
-          name="settings"
+          name="setting"
           options={{
             tabBarIcon: ({ color, size }) => (
               <MaterialIcons name="settings-applications" color={color} size={size} />
@@ -55,7 +55,7 @@ const DashboardLayout = () => {
           }}
         />
         <Tabs.Screen
-          name="vets"
+          name="vet"
           options={{
             tabBarIcon: ({ color, size }) => (
               <MaterialIcons name="emergency" color={color} size={size} />
