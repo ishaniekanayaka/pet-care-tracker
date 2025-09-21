@@ -11,13 +11,15 @@ import {
   Dimensions,
   StyleSheet,
   StatusBar,
+  Modal,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import { auth } from "../../../firebase";
-import { Pet } from "../../../types/pet";
-import { getPetsByType, getPetsByUser } from "../../../services/petService";
+import { Pet, PetUpdateData } from "../../../types/pet";
+import { getPetsByType, getPetsByUser, updatePet, deletePet } from "../../../services/petService";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = 180;
@@ -29,6 +31,14 @@ const ProfileIndex = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPetType, setSelectedPetType] = useState("all");
   const [scrollX] = useState(new Animated.Value(0));
+  const [editingPet, setEditingPet] = useState<Pet | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    breed: "",
+    age: "",
+    weight: "",
+  });
+  const [updateLoading, setUpdateLoading] = useState(false);
   const router = useRouter();
   const userId = auth.currentUser?.uid || "";
 
@@ -85,6 +95,102 @@ const ProfileIndex = () => {
     router.push("/dashboard/profile/new" as any);
   };
 
+  const handleEditPet = (pet: Pet) => {
+    setEditingPet(pet);
+    setEditFormData({
+      name: pet.name,
+      breed: pet.breed,
+      age: pet.age.toString(),
+      weight: pet.weight.toString(),
+    });
+  };
+
+  const handleUpdatePet = async () => {
+    if (!editingPet || !editingPet.id) return;
+
+    // Validation
+    if (!editFormData.name.trim()) {
+      Alert.alert("Validation Error", "Pet name is required");
+      return;
+    }
+
+    const ageNum = Number(editFormData.age);
+    if (!editFormData.age.trim() || isNaN(ageNum) || ageNum < 0 || ageNum > 30) {
+      Alert.alert("Validation Error", "Please enter a valid age (0-30 years)");
+      return;
+    }
+
+    const weightNum = Number(editFormData.weight);
+    if (!editFormData.weight.trim() || isNaN(weightNum) || weightNum <= 0 || weightNum > 200) {
+      Alert.alert("Validation Error", "Please enter a valid weight (0.1-200 kg)");
+      return;
+    }
+
+    setUpdateLoading(true);
+    try {
+      const updateData: PetUpdateData = {
+        name: editFormData.name.trim(),
+        breed: editFormData.breed.trim(),
+        age: ageNum,
+        weight: weightNum,
+      };
+
+      await updatePet(editingPet.id, updateData);
+      
+      // Update local state
+      const updatedPets = pets.map(pet => 
+        pet.id === editingPet.id 
+          ? { ...pet, ...updateData }
+          : pet
+      );
+      setPets(updatedPets);
+      setFilteredPets(updatedPets.filter(pet => {
+        if (!searchQuery.trim()) return true;
+        return pet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+               pet.breed.toLowerCase().includes(searchQuery.toLowerCase());
+      }));
+
+      setEditingPet(null);
+      Alert.alert("Success", "Pet updated successfully!");
+    } catch (error) {
+      console.error("Update error:", error);
+      Alert.alert("Error", "Failed to update pet. Please try again.");
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  const handleDeletePet = (pet: Pet) => {
+    if (!pet.id) {
+      Alert.alert("Error", "Cannot delete pet: Invalid pet data");
+      return;
+    }
+
+    Alert.alert(
+      "Delete Pet",
+      `Are you sure you want to delete ${pet.name}? This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive", 
+          onPress: async () => {
+            try {
+              await deletePet(pet.id!);
+              const updatedPets = pets.filter(p => p.id !== pet.id);
+              setPets(updatedPets);
+              setFilteredPets(updatedPets);
+              Alert.alert("Success", `${pet.name} has been deleted successfully`);
+            } catch (error) {
+              console.error("Delete error:", error);
+              Alert.alert("Error", "Failed to delete pet. Please try again.");
+            }
+          }
+        },
+      ]
+    );
+  };
+
   const petCount = pets.length;
   const avgAge =
     pets.length > 0
@@ -93,6 +199,88 @@ const ProfileIndex = () => {
   const totalWeight = pets
     .reduce((sum, pet) => sum + pet.weight, 0)
     .toFixed(1);
+
+  const renderEditModal = () => (
+    <Modal
+      visible={editingPet !== null}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setEditingPet(null)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.editModal}>
+          <View style={styles.editModalHeader}>
+            <Text style={styles.editModalTitle}>Edit {editingPet?.name}</Text>
+            <TouchableOpacity onPress={() => setEditingPet(null)}>
+              <MaterialIcons name="close" size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.editModalContent}>
+            <Text style={styles.inputLabel}>Name</Text>
+            <TextInput
+              style={styles.editInput}
+              value={editFormData.name}
+              onChangeText={(text) => setEditFormData({...editFormData, name: text})}
+              placeholder="Pet name"
+              maxLength={50}
+            />
+
+            <Text style={styles.inputLabel}>Breed</Text>
+            <TextInput
+              style={styles.editInput}
+              value={editFormData.breed}
+              onChangeText={(text) => setEditFormData({...editFormData, breed: text})}
+              placeholder="Pet breed"
+              maxLength={50}
+            />
+
+            <Text style={styles.inputLabel}>Age (years)</Text>
+            <TextInput
+              style={styles.editInput}
+              value={editFormData.age}
+              onChangeText={(text) => setEditFormData({...editFormData, age: text})}
+              placeholder="Age"
+              keyboardType="numeric"
+              maxLength={2}
+            />
+
+            <Text style={styles.inputLabel}>Weight (kg)</Text>
+            <TextInput
+              style={styles.editInput}
+              value={editFormData.weight}
+              onChangeText={(text) => setEditFormData({...editFormData, weight: text})}
+              placeholder="Weight"
+              keyboardType="decimal-pad"
+              maxLength={5}
+            />
+          </ScrollView>
+
+          <View style={styles.editModalActions}>
+            <TouchableOpacity 
+              style={styles.cancelButton} 
+              onPress={() => setEditingPet(null)}
+              disabled={updateLoading}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.saveButton, updateLoading && styles.disabledButton]} 
+              onPress={handleUpdatePet}
+              disabled={updateLoading}
+            >
+              {updateLoading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.saveButtonText}>Save</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 
   if (loading && pets.length === 0) {
     return (
@@ -114,7 +302,7 @@ const ProfileIndex = () => {
             source={require("../../../assets/images/petgif.gif")}
             style={styles.headerGif}
           />
-          <Text style={styles.headerTitle}>Welcome Back 🐾</Text>
+          <Text style={styles.headerTitle}>Welcome Back</Text>
           <Text style={styles.headerSubtitle}>Your PetCare Dashboard</Text>
         </View>
       </LinearGradient>
@@ -228,25 +416,43 @@ const ProfileIndex = () => {
                 },
               ]}
             >
-              <TouchableOpacity
-                onPress={() => handlePetSelect(pet)}
-                style={styles.petCardContent}
-              >
-                {pet.image ? (
-                  <Image source={{ uri: pet.image }} style={styles.petImage} />
-                ) : (
-                  <View style={styles.petImagePlaceholder}>
-                    <MaterialIcons name="pets" size={40} color="#A8BBA3" />
+              <View style={styles.petCardContent}>
+                <TouchableOpacity
+                  onPress={() => handlePetSelect(pet)}
+                  style={styles.petMainContent}
+                >
+                  {pet.image ? (
+                    <Image source={{ uri: pet.image }} style={styles.petImage} />
+                  ) : (
+                    <View style={styles.petImagePlaceholder}>
+                      <MaterialIcons name="pets" size={40} color="#A8BBA3" />
+                    </View>
+                  )}
+                  <View style={styles.petInfo}>
+                    <Text style={styles.petName}>{pet.name}</Text>
+                    <Text style={styles.petBreed}>{pet.breed}</Text>
+                    <Text style={styles.petStat}>
+                      {pet.age} yrs • {pet.weight} kg
+                    </Text>
                   </View>
-                )}
-                <View style={styles.petInfo}>
-                  <Text style={styles.petName}>{pet.name}</Text>
-                  <Text style={styles.petBreed}>{pet.breed}</Text>
-                  <Text style={styles.petStat}>
-                    {pet.age} yrs • {pet.weight} kg
-                  </Text>
+                </TouchableOpacity>
+                
+                {/* Action Buttons */}
+                <View style={styles.cardActions}>
+                  <TouchableOpacity 
+                    style={styles.editCardButton}
+                    onPress={() => handleEditPet(pet)}
+                  >
+                    <MaterialIcons name="edit" size={16} color="#A8BBA3" />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.deleteCardButton}
+                    onPress={() => handleDeletePet(pet)}
+                  >
+                    <MaterialIcons name="delete" size={16} color="#ff4757" />
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
+              </View>
             </Animated.View>
           ))
         )}
@@ -256,6 +462,9 @@ const ProfileIndex = () => {
       <TouchableOpacity onPress={handleAddNewPet} style={styles.addPetButton}>
         <MaterialIcons name="add" size={28} color="white" />
       </TouchableOpacity>
+
+      {/* Edit Modal */}
+      {renderEditModal()}
     </View>
   );
 };
@@ -265,10 +474,10 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { color: "#A8BBA3", marginTop: 10 },
   headerGradient: { paddingVertical: 30, alignItems: "center" },
-  headerContent: { alignItems: "center" },
+  headerContent: { alignItems: "center", marginTop: -20 },
   headerGif: { width: 180, height: 150, marginBottom: -20 },
   headerTitle: { fontSize: 34, fontWeight: "bold", color: "black" },
-  headerSubtitle: { fontSize: 24, color: "#555", marginBottom: -20  },
+  headerSubtitle: { fontSize: 14, color: "#555", marginBottom: -20 },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -305,6 +514,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     elevation: 4,
     width: 100,
+    marginBottom: -20
   },
   statNumber: { fontSize: 18, fontWeight: "bold", color: "#000" },
   statLabel: { fontSize: 12, color: "#777" },
@@ -312,20 +522,155 @@ const styles = StyleSheet.create({
   petCard: { width: CARD_WIDTH, marginRight: 20 },
   petCardContent: {
     backgroundColor: "#fff",
-    padding: 20,
     borderRadius: 15,
     elevation: 4,
+    overflow: "hidden",
+  },
+  petMainContent: {
+    padding: 20,
     alignItems: "center",
   },
-  petImage: { width: 80, height: 80, borderRadius: 40, marginBottom: 10, borderWidth: 2, borderColor: "#A8BBA3" },
-  petImagePlaceholder: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center", marginBottom: 10 },
+  petImage: { 
+    width: 80, 
+    height: 80, 
+    borderRadius: 40, 
+    marginBottom: 10, 
+    borderWidth: 2, 
+    borderColor: "#A8BBA3" 
+  },
+  petImagePlaceholder: { 
+    width: 80, 
+    height: 80, 
+    borderRadius: 40, 
+    backgroundColor: "#f0f0f0", 
+    justifyContent: "center", 
+    alignItems: "center", 
+    marginBottom: 10 
+  },
   petInfo: { alignItems: "center" },
   petName: { fontSize: 16, fontWeight: "bold", color: "#000" },
   petBreed: { fontSize: 13, color: "#666" },
   petStat: { fontSize: 12, color: "#A8BBA3" },
-  emptyState: { alignItems: "center", justifyContent: "center", width: width - 60, padding: 20 },
+  cardActions: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+  },
+  editCardButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "#f8f9fa",
+  },
+  deleteCardButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "#f8f9fa",
+  },
+  emptyState: { 
+    alignItems: "center", 
+    justifyContent: "center", 
+    width: width - 60, 
+    padding: 20 
+  },
   emptyStateText: { marginTop: 10, fontSize: 16, color: "#777" },
-  addPetButton: { backgroundColor: "#A8BBA3", width: 50, height: 50, borderRadius: 30, position: "absolute", bottom: 10, right: 10, justifyContent: "center", alignItems: "center", elevation: 6 },
+  addPetButton: { 
+    backgroundColor: "#A8BBA3", 
+    width: 50, 
+    height: 50, 
+    borderRadius: 30, 
+    position: "absolute", 
+    bottom: 10, 
+    right: 10, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    elevation: 6 
+  },
+  
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  editModal: {
+    width: "90%",
+    maxHeight: "80%",
+    backgroundColor: "white",
+    borderRadius: 15,
+    overflow: "hidden",
+  },
+  editModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  editModalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  editModalContent: {
+    padding: 20,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#000",
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  editInput: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: "#000",
+  },
+  editModalActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+  },
+  cancelButton: {
+    flex: 1,
+    padding: 15,
+    marginRight: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: "#666",
+    fontWeight: "600",
+  },
+  saveButton: {
+    flex: 1,
+    padding: 15,
+    marginLeft: 10,
+    borderRadius: 8,
+    backgroundColor: "#A8BBA3",
+    alignItems: "center",
+  },
+  saveButtonText: {
+    fontSize: 16,
+    color: "white",
+    fontWeight: "600",
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
 });
 
 export default ProfileIndex;

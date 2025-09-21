@@ -37,14 +37,14 @@ const DashboardLayout = () => {
             ),
           }}
         />
-        <Tabs.Screen
+        {/* <Tabs.Screen
           name="setting"
           options={{
             tabBarIcon: ({ color, size }) => (
               <MaterialIcons name="settings-applications" color={color} size={size} />
             ),
           }}
-        />
+        /> */}
         <Tabs.Screen
           name="health"
           options={{

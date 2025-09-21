@@ -1,9 +1,9 @@
-import { View, ActivityIndicator } from "react-native";
-import React, { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import { STORAGE_KEYS } from "@/constants/keys";
 import { useAuth } from "@/context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_KEYS } from "@/constants/keys";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 
 const Index = () => {
   const router = useRouter();
