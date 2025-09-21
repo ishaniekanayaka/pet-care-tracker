@@ -266,9 +266,9 @@ const styles = StyleSheet.create({
   loadingText: { color: "#A8BBA3", marginTop: 10 },
   headerGradient: { paddingVertical: 30, alignItems: "center" },
   headerContent: { alignItems: "center" },
-  headerGif: { width: 120, height: 80, marginBottom: 10 },
-  headerTitle: { fontSize: 24, fontWeight: "bold", color: "black" },
-  headerSubtitle: { fontSize: 14, color: "#555" },
+  headerGif: { width: 180, height: 150, marginBottom: -20 },
+  headerTitle: { fontSize: 34, fontWeight: "bold", color: "black" },
+  headerSubtitle: { fontSize: 24, color: "#555", marginBottom: -20  },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   petStat: { fontSize: 12, color: "#A8BBA3" },
   emptyState: { alignItems: "center", justifyContent: "center", width: width - 60, padding: 20 },
   emptyStateText: { marginTop: 10, fontSize: 16, color: "#777" },
-  addPetButton: { backgroundColor: "#A8BBA3", width: 60, height: 60, borderRadius: 30, position: "absolute", bottom: 20, right: 20, justifyContent: "center", alignItems: "center", elevation: 6 },
+  addPetButton: { backgroundColor: "#A8BBA3", width: 50, height: 50, borderRadius: 30, position: "absolute", bottom: 10, right: 10, justifyContent: "center", alignItems: "center", elevation: 6 },
 });
 
 export default ProfileIndex;

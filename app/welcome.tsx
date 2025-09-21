@@ -16,7 +16,7 @@ const Welcome = () => {
   const handleContinue = async () => {
     const key = `${STORAGE_KEYS.ONBOARDED}:${user?.email}`;
     await AsyncStorage.setItem(key, "1");
-    router.replace("/dashboard/setting");
+    router.replace("/dashboard/profile");
   };
 
   return (

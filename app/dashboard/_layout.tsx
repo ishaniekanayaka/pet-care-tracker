@@ -4,16 +4,23 @@ import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const DashboardLayout = () => {
+  // Define your theme colors
+  const COLORS = {
+    background: "#fff", // white
+    active: "#A8BBA3", // greenish
+    inactive: "#000", // black
+  };
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }} edges={['bottom']}>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: "#5D688A",
-          tabBarInactiveTintColor: "#666",
+          tabBarActiveTintColor: COLORS.active,
+          tabBarInactiveTintColor: COLORS.inactive,
           headerShown: false,
-          tabBarShowLabel: false, // 👈 Text names hide karanna
+          tabBarShowLabel: false,
           tabBarStyle: {
-            backgroundColor: "#fff",
+            backgroundColor: COLORS.background,
             height: 70,
             paddingBottom: 16,
             paddingTop: 8,
@@ -47,6 +54,14 @@ const DashboardLayout = () => {
           }}
         />
         <Tabs.Screen
+          name="profile"
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <MaterialIcons name="person" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="feeding_shedule"
           options={{
             tabBarIcon: ({ color, size }) => (
@@ -59,22 +74,6 @@ const DashboardLayout = () => {
           options={{
             tabBarIcon: ({ color, size }) => (
               <MaterialIcons name="emergency" color={color} size={size} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="person" color={color} size={size} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="home"
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="home" color={color} size={size} />
             ),
           }}
         />
