@@ -234,3 +234,4 @@ export const getAllScheduledNotifications = async () => {
     return [];
   }
 };
+

@@ -1,122 +1,90 @@
-import { View, Text, TouchableOpacity, Dimensions, Animated, StatusBar, StyleSheet } from "react-native";
-import React, { useEffect, useRef } from "react";
+import { View, Text, TouchableOpacity, Dimensions, StatusBar, StyleSheet } from "react-native";
+import React from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { STORAGE_KEYS } from "@/constants/keys";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 
 const Welcome = () => {
   const router = useRouter();
   const { user } = useAuth();
-  
-  // Animation references
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-
-  useEffect(() => {
-    // Start animations
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      })
-    ]).start();
-  }, []);
 
   const handleContinue = async () => {
     const key = `${STORAGE_KEYS.ONBOARDED}:${user?.email}`;
     await AsyncStorage.setItem(key, "1");
-    router.replace("/dashboard/profile");
+    router.replace("/dashboard/setting");
   };
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor="#8D5F8C" />
+      <StatusBar barStyle="light-content" backgroundColor="#A376A2" />
       <View style={styles.container}>
-        {/* Background Gradient */}
-        <View style={styles.backgroundGradient}>
-          {/* Decorative circles */}
-          <View style={[styles.circle, styles.circle1]} />
-          <View style={[styles.circle, styles.circle2]} />
-          <View style={[styles.circle, styles.circle3]} />
-        </View>
-
+        
+        {/* Gradient Background */}
+        <LinearGradient
+          colors={['#A376A2', '#ffffff', '#ffffff']}
+          locations={[0, 0.4, 1]}
+          style={styles.gradientBackground}
+        />
+        
         {/* Main Content */}
-        <Animated.View 
-          style={[
-            styles.content,
-            {
-              opacity: fadeAnim,
-              transform: [
-                { translateY: slideAnim },
-                { scale: scaleAnim }
-              ]
-            }
-          ]}
-        >
-          {/* Pet Care Icon */}
+        <View style={styles.content}>
+          
+          {/* Pet Care Icons - Multiple pets */}
           <View style={styles.iconContainer}>
-            <View style={styles.iconBackground}>
-              <MaterialIcons name="pets" size={80} color="#8D5F8C" />
+            <View style={styles.petsRow}>
+              <View style={styles.petIconWrapper}>
+                <MaterialIcons name="pets" size={32} color="#A376A2" />
+              </View>
+              <View style={[styles.petIconWrapper, styles.centerPet]}>
+                <MaterialIcons name="favorite" size={40} color="#A376A2" />
+              </View>
+              <View style={styles.petIconWrapper}>
+                <MaterialIcons name="pets" size={32} color="#A376A2" />
+              </View>
             </View>
-            
-            {/* Floating hearts animation */}
-            <View style={styles.floatingIcon1}>
-              <MaterialIcons name="favorite" size={20} color="#FF6B9D" />
-            </View>
-            <View style={styles.floatingIcon2}>
-              <MaterialIcons name="favorite" size={16} color="#FFB3D1" />
-            </View>
-            <View style={styles.floatingIcon3}>
-              <MaterialIcons name="favorite" size={12} color="#FF8FAB" />
+            <View style={styles.petsRowBottom}>
+              <MaterialIcons name="pets" size={24} color="rgba(163, 118, 162, 0.6)" />
+              <MaterialIcons name="pets" size={20} color="rgba(163, 118, 162, 0.4)" />
             </View>
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>
-            Welcome to PawPal
-          </Text>
+          <Text style={styles.title}>PetCare</Text>
           
           {/* Subtitle */}
           <Text style={styles.subtitle}>
-            Your pet's health & happiness companion
+            Simple pet management for busy pet parents
           </Text>
 
-          {/* Feature highlights */}
+          {/* Features */}
           <View style={styles.featuresContainer}>
             <View style={styles.feature}>
-              <MaterialIcons name="schedule" size={24} color="#8D5F8C" />
-              <Text style={styles.featureText}>Feeding Schedule</Text>
+              <MaterialIcons name="schedule" size={32} color="#A376A2" />
+              <Text style={styles.featureTitle}>Schedule</Text>
+              <Text style={styles.featureDesc}>Track feeding & walks</Text>
             </View>
+            
             <View style={styles.feature}>
-              <MaterialIcons name="medical-services" size={24} color="#8D5F8C" />
-              <Text style={styles.featureText}>Health Tracking</Text>
+              <MaterialIcons name="favorite" size={32} color="#A376A2" />
+              <Text style={styles.featureTitle}>Health</Text>
+              <Text style={styles.featureDesc}>Monitor wellness</Text>
             </View>
+            
             <View style={styles.feature}>
-              <MaterialIcons name="event" size={24} color="#8D5F8C" />
-              <Text style={styles.featureText}>Vet Appointments</Text>
+              <MaterialIcons name="event" size={32} color="#A376A2" />
+              <Text style={styles.featureTitle}>Reminders</Text>
+              <Text style={styles.featureDesc}>Never miss appointments</Text>
             </View>
           </View>
 
           {/* Description */}
           <Text style={styles.description}>
-            Track vaccinations, feeding times, vet visits, and create a complete health profile for your furry friends.
+            Keep your furry friends healthy and happy with simple tracking tools and smart reminders.
           </Text>
 
           {/* Get Started Button */}
@@ -126,20 +94,20 @@ const Welcome = () => {
             activeOpacity={0.8}
           >
             <Text style={styles.buttonText}>Get Started</Text>
-            <MaterialIcons name="arrow-forward" size={20} color="white" style={styles.buttonIcon} />
+            <MaterialIcons name="arrow-forward" size={20} color="white" />
           </TouchableOpacity>
 
           {/* Skip link */}
           <TouchableOpacity onPress={handleContinue} style={styles.skipButton}>
-            <Text style={styles.skipText}>Skip Introduction</Text>
+            <Text style={styles.skipText}>Skip for now</Text>
           </TouchableOpacity>
-        </Animated.View>
+        </View>
 
-        {/* Bottom decoration */}
+        {/* Bottom decoration - simple paw prints */}
         <View style={styles.bottomDecoration}>
-          <MaterialIcons name="pets" size={20} color="rgba(255,255,255,0.3)" />
-          <MaterialIcons name="pets" size={16} color="rgba(255,255,255,0.2)" />
-          <MaterialIcons name="pets" size={12} color="rgba(255,255,255,0.1)" />
+          <MaterialIcons name="pets" size={16} color="rgba(163, 118, 162, 0.3)" />
+          <MaterialIcons name="pets" size={12} color="rgba(163, 118, 162, 0.2)" />
+          <MaterialIcons name="pets" size={10} color="rgba(163, 118, 162, 0.1)" />
         </View>
       </View>
     </>
@@ -149,41 +117,15 @@ const Welcome = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#8D5F8C',
+    backgroundColor: '#ffffff',
     position: 'relative',
   },
-  backgroundGradient: {
+  gradientBackground: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#8D5F8C',
-  },
-  circle: {
-    position: 'absolute',
-    borderRadius: 1000,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  circle1: {
-    width: 200,
-    height: 200,
-    top: -100,
-    right: -50,
-  },
-  circle2: {
-    width: 150,
-    height: 150,
-    bottom: 100,
-    left: -75,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  circle3: {
-    width: 100,
-    height: 100,
-    top: height * 0.3,
-    left: -20,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   content: {
     flex: 1,
@@ -193,127 +135,129 @@ const styles = StyleSheet.create({
     paddingVertical: 50,
   },
   iconContainer: {
-    position: 'relative',
     marginBottom: 40,
+    alignItems: 'center',
   },
-  iconBackground: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'white',
+  petsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  petIconWrapper: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 15,
+    marginHorizontal: 15,
+    shadowColor: '#A376A2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  floatingIcon1: {
-    position: 'absolute',
-    top: 20,
-    right: 10,
-    opacity: 0.8,
+  centerPet: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: '#A376A2',
+    backgroundColor: 'white',
+    transform: [{ translateY: -10 }],
   },
-  floatingIcon2: {
-    position: 'absolute',
-    top: 60,
-    right: -10,
-    opacity: 0.6,
-  },
-  floatingIcon3: {
-    position: 'absolute',
-    bottom: 30,
-    left: 10,
-    opacity: 0.7,
+  petsRowBottom: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#000000',
     textAlign: 'center',
-    marginBottom: 12,
-    letterSpacing: 1,
+    marginBottom: 8,
+    letterSpacing: -1,
   },
   subtitle: {
-    fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 16,
+    color: '#666666',
     textAlign: 'center',
     marginBottom: 40,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   featuresContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 30,
-    paddingHorizontal: 20,
+    marginBottom: 40,
+    paddingHorizontal: 10,
   },
   feature: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingVertical: 15,
-    paddingHorizontal: 12,
-    borderRadius: 15,
-    minWidth: 80,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    flex: 1,
+    paddingHorizontal: 10,
   },
-  featureText: {
-    color: 'white',
-    fontSize: 12,
-    marginTop: 8,
-    textAlign: 'center',
+  featureTitle: {
+    color: '#000000',
+    fontSize: 14,
     fontWeight: '600',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  featureDesc: {
+    color: '#666666',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 16,
   },
   description: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 15,
+    color: '#666666',
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 50,
+    lineHeight: 22,
+    marginBottom: 40,
     paddingHorizontal: 10,
   },
   getStartedButton: {
-    backgroundColor: 'white',
+    backgroundColor: '#A376A2',
     paddingVertical: 16,
-    paddingHorizontal: 40,
-    borderRadius: 30,
+    paddingHorizontal: 32,
+    borderRadius: 25,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 10,
     marginBottom: 20,
+    minWidth: 160,
+    justifyContent: 'center',
+    shadowColor: '#A376A2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   buttonText: {
-    color: '#8D5F8C',
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
     marginRight: 8,
   },
-  buttonIcon: {
-    marginLeft: 5,
-    color: '#8D5F8C',
-  },
   skipButton: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 20,
   },
   skipText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 16,
-    textDecorationLine: 'underline',
+    color: '#999999',
+    fontSize: 14,
+    textAlign: 'center',
   },
   bottomDecoration: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 40,
     right: 30,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
 });
 
