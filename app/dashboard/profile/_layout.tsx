@@ -13,7 +13,7 @@ export default function ProfileLayout() {
       <Stack.Screen 
         name="[id]" 
         options={{ 
-          headerShown: true,
+          headerShown: false,
           title: 'Pet Profile Details',
           headerBackTitle: 'Back'
         }} 
