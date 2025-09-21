@@ -1,18 +1,27 @@
 import React, { useState, useEffect } from "react";
-import { 
-  View, Text, ScrollView, TouchableOpacity, Alert, Image, 
-  TextInput, Animated, Dimensions, StyleSheet, StatusBar
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Image,
+  TextInput,
+  Animated,
+  Dimensions,
+  StyleSheet,
+  StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 import { auth } from "../../../firebase";
 import { getPetsByUser } from "../../../services/petService";
 import { Pet } from "../../../types/pet";
 
 const { width } = Dimensions.get("window");
 
-const CARD_WIDTH = 180; // ekama card size ekata fix karapu width
+const CARD_WIDTH = 180;
 
 const ProfileIndex = () => {
   const [pets, setPets] = useState<Pet[]>([]);
@@ -23,6 +32,14 @@ const ProfileIndex = () => {
   const [scrollX] = useState(new Animated.Value(0));
   const router = useRouter();
   const userId = auth.currentUser?.uid || "";
+
+  const petTypes = [
+    { id: "all", label: "All", icon: "pets" },
+    { id: "dog", label: "Dogs", icon: "pets" },
+    { id: "cat", label: "Cats", icon: "pets" },
+    { id: "bird", label: "Birds", icon: "pets" },
+    { id: "other", label: "Others", icon: "pets" },
+  ];
 
   const loadPets = async (showLoader = false) => {
     if (!userId) {
@@ -52,8 +69,8 @@ const ProfileIndex = () => {
       );
     }
     if (selectedPetType !== "all") {
-      filtered = filtered.filter((pet) =>
-        pet.breed.toLowerCase().includes(selectedPetType)
+      filtered = filtered.filter(
+        (pet) => pet.type?.toLowerCase() === selectedPetType
       );
     }
     setFilteredPets(filtered);
@@ -134,6 +151,39 @@ const ProfileIndex = () => {
         )}
       </View>
 
+      {/* Pet Type Filter */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
+        contentContainerStyle={styles.filterContainer}
+      >
+        {petTypes.map((type) => (
+          <TouchableOpacity
+            key={type.id}
+            style={[
+              styles.filterButton,
+              selectedPetType === type.id && styles.filterButtonActive,
+            ]}
+            onPress={() => setSelectedPetType(type.id)}
+          >
+            <MaterialIcons
+              name={type.icon as any}
+              size={18}
+              color={selectedPetType === type.id ? "#fff" : "#A8BBA3"}
+            />
+            <Text
+              style={[
+                styles.filterText,
+                selectedPetType === type.id && { color: "#fff" },
+              ]}
+            >
+              {type.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       {/* Stats */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
@@ -166,64 +216,56 @@ const ProfileIndex = () => {
             <Text style={styles.emptyStateText}>No pets found</Text>
           </View>
         ) : (
-          <>
-            {filteredPets.map((pet, index) => (
-              <Animated.View
-                key={pet.id}
-                style={[
-                  styles.petCard,
-                  {
-                    transform: [
-                      {
-                        scale: scrollX.interpolate({
-                          inputRange: [
-                            (index - 1) * CARD_WIDTH,
-                            index * CARD_WIDTH,
-                            (index + 1) * CARD_WIDTH,
-                          ],
-                          outputRange: [0.9, 1, 0.9],
-                          extrapolate: "clamp",
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <TouchableOpacity
-                  onPress={() => handlePetSelect(pet)}
-                  style={styles.petCardContent}
-                >
-                  {pet.image ? (
-                    <Image source={{ uri: pet.image }} style={styles.petImage} />
-                  ) : (
-                    <View style={styles.petImagePlaceholder}>
-                      <MaterialIcons name="pets" size={40} color="#A8BBA3" />
-                    </View>
-                  )}
-                  <View style={styles.petInfo}>
-                    <Text style={styles.petName}>{pet.name}</Text>
-                    <Text style={styles.petBreed}>{pet.breed}</Text>
-                    <Text style={styles.petStat}>
-                      {pet.age} yrs • {pet.weight} kg
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </Animated.View>
-            ))}
-
-            {/* Plus Card */}
-            <TouchableOpacity
-              onPress={handleAddNewPet}
-              style={[styles.petCard, styles.plusCard]}
+          filteredPets.map((pet, index) => (
+            <Animated.View
+              key={pet.id}
+              style={[
+                styles.petCard,
+                {
+                  transform: [
+                    {
+                      scale: scrollX.interpolate({
+                        inputRange: [
+                          (index - 1) * CARD_WIDTH,
+                          index * CARD_WIDTH,
+                          (index + 1) * CARD_WIDTH,
+                        ],
+                        outputRange: [0.9, 1, 0.9],
+                        extrapolate: "clamp",
+                      }),
+                    },
+                  ],
+                },
+              ]}
             >
-              <View style={styles.plusContent}>
-                <MaterialIcons name="add" size={40} color="#A8BBA3" />
-                <Text style={styles.plusText}>Add Pet</Text>
-              </View>
-            </TouchableOpacity>
-          </>
+              <TouchableOpacity
+                onPress={() => handlePetSelect(pet)}
+                style={styles.petCardContent}
+              >
+                {pet.image ? (
+                  <Image source={{ uri: pet.image }} style={styles.petImage} />
+                ) : (
+                  <View style={styles.petImagePlaceholder}>
+                    <MaterialIcons name="pets" size={40} color="#A8BBA3" />
+                  </View>
+                )}
+                <View style={styles.petInfo}>
+                  <Text style={styles.petName}>{pet.name}</Text>
+                  <Text style={styles.petBreed}>{pet.breed}</Text>
+                  <Text style={styles.petStat}>
+                    {pet.age} yrs • {pet.weight} kg
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
+          ))
         )}
       </ScrollView>
+
+      {/* Add Pet Button - Floating Circle */}
+      <TouchableOpacity onPress={handleAddNewPet} style={styles.addPetButton}>
+        <MaterialIcons name="add" size={28} color="white" />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -234,7 +276,7 @@ const styles = StyleSheet.create({
   loadingText: { color: "#A8BBA3", marginTop: 10 },
   headerGradient: { paddingVertical: 30, alignItems: "center" },
   headerContent: { alignItems: "center" },
-  headerGif: { width: 180, height: 120, marginBottom: 15 }, // loku karala
+  headerGif: { width: 120, height: 80, marginBottom: 10 }, // 🔹 reduced size
   headerTitle: { fontSize: 24, fontWeight: "bold", color: "black" },
   headerSubtitle: { fontSize: 14, color: "#555" },
   searchContainer: {
@@ -248,6 +290,21 @@ const styles = StyleSheet.create({
   },
   searchIcon: { marginRight: 10 },
   searchInput: { flex: 1, fontSize: 16, color: "#000" },
+  filterScroll: { marginTop: 5, marginBottom: 10 },
+  filterContainer: { paddingHorizontal: 10 },
+  filterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  filterButtonActive: {
+    backgroundColor: "#A8BBA3",
+  },
+  filterText: { marginLeft: 5, color: "#555", fontSize: 13 },
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -296,15 +353,6 @@ const styles = StyleSheet.create({
   petName: { fontSize: 16, fontWeight: "bold", color: "#000" },
   petBreed: { fontSize: 13, color: "#666" },
   petStat: { fontSize: 12, color: "#A8BBA3" },
-  plusCard: {
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f9f9f9",
-    borderRadius: 15,
-    elevation: 4,
-  },
-  plusContent: { alignItems: "center" },
-  plusText: { marginTop: 5, color: "#555", fontWeight: "bold" },
   emptyState: {
     alignItems: "center",
     justifyContent: "center",
@@ -312,6 +360,18 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   emptyStateText: { marginTop: 10, fontSize: 16, color: "#777" },
+  addPetButton: {
+    backgroundColor: "#A8BBA3",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 6,
+  },
 });
 
 export default ProfileIndex;
