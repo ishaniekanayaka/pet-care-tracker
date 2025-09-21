@@ -85,8 +85,8 @@ const Login = () => {
 
           {/* Form Section */}
           <View className="w-full max-w-md">
-            <Text className="text-2xl font-bold mb-6 text-black text-center">
-              Welcome Back
+            <Text className="text-4xl font-bold mb-6 text-black text-center">
+              WELCOME BACK
             </Text>
 
             <View className="mb-5">
