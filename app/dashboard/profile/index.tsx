@@ -16,11 +16,10 @@ import { useRouter } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import { auth } from "../../../firebase";
-import { getPetsByUser } from "../../../services/petService";
 import { Pet } from "../../../types/pet";
+import { getPetsByType, getPetsByUser } from "../../../services/petService";
 
 const { width } = Dimensions.get("window");
-
 const CARD_WIDTH = 180;
 
 const ProfileIndex = () => {
@@ -41,23 +40,29 @@ const ProfileIndex = () => {
     { id: "other", label: "Others", icon: "pets" },
   ];
 
-  const loadPets = async (showLoader = false) => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
+  const loadPets = async () => {
+    if (!userId) return;
+    setLoading(true);
     try {
-      if (showLoader) setLoading(true);
-      const data = await getPetsByUser(userId);
-      setPets(data);
-      setFilteredPets(data);
+      let petsData: Pet[] = [];
+      if (selectedPetType === "all") {
+        petsData = await getPetsByUser(userId);
+      } else {
+        petsData = await getPetsByType(userId, selectedPetType);
+      }
+      setPets(petsData);
+      setFilteredPets(petsData);
     } catch (error) {
-      console.error("Error loading pets:", error);
+      console.error(error);
       Alert.alert("Error", "Failed to load pets");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadPets();
+  }, [userId, selectedPetType]);
 
   useEffect(() => {
     let filtered = pets;
@@ -68,24 +73,12 @@ const ProfileIndex = () => {
           pet.breed.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    if (selectedPetType !== "all") {
-      filtered = filtered.filter(
-        (pet) => pet.type?.toLowerCase() === selectedPetType
-      );
-    }
     setFilteredPets(filtered);
-  }, [pets, searchQuery, selectedPetType]);
-
-  useEffect(() => {
-    loadPets(true);
-  }, [userId]);
+  }, [searchQuery, pets]);
 
   const handlePetSelect = (pet: Pet) => {
-    if (pet.id) {
-      router.push(`/dashboard/profile/${pet.id}` as any);
-    } else {
-      Alert.alert("Error", "Pet ID missing!");
-    }
+    if (pet.id) router.push(`/dashboard/profile/${pet.id}` as any);
+    else Alert.alert("Error", "Pet ID missing!");
   };
 
   const handleAddNewPet = () => {
@@ -114,11 +107,8 @@ const ProfileIndex = () => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#A8BBA3" />
 
-      {/* Gradient Header with GIF */}
-      <LinearGradient
-        colors={["#A8BBA3", "#ffffff"]}
-        style={styles.headerGradient}
-      >
+      {/* Header */}
+      <LinearGradient colors={["#A8BBA3", "#fff"]} style={styles.headerGradient}>
         <View style={styles.headerContent}>
           <Image
             source={require("../../../assets/images/petgif.gif")}
@@ -262,7 +252,7 @@ const ProfileIndex = () => {
         )}
       </ScrollView>
 
-      {/* Add Pet Button - Floating Circle */}
+      {/* Add Pet Button */}
       <TouchableOpacity onPress={handleAddNewPet} style={styles.addPetButton}>
         <MaterialIcons name="add" size={28} color="white" />
       </TouchableOpacity>
@@ -276,7 +266,7 @@ const styles = StyleSheet.create({
   loadingText: { color: "#A8BBA3", marginTop: 10 },
   headerGradient: { paddingVertical: 30, alignItems: "center" },
   headerContent: { alignItems: "center" },
-  headerGif: { width: 120, height: 80, marginBottom: 10 }, // 🔹 reduced size
+  headerGif: { width: 120, height: 80, marginBottom: 10 },
   headerTitle: { fontSize: 24, fontWeight: "bold", color: "black" },
   headerSubtitle: { fontSize: 14, color: "#555" },
   searchContainer: {
@@ -301,9 +291,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 10,
   },
-  filterButtonActive: {
-    backgroundColor: "#A8BBA3",
-  },
+  filterButtonActive: { backgroundColor: "#A8BBA3" },
   filterText: { marginLeft: 5, color: "#555", fontSize: 13 },
   statsContainer: {
     flexDirection: "row",
@@ -321,10 +309,7 @@ const styles = StyleSheet.create({
   statNumber: { fontSize: 18, fontWeight: "bold", color: "#000" },
   statLabel: { fontSize: 12, color: "#777" },
   petCardsContainer: { paddingHorizontal: 15, paddingVertical: 20 },
-  petCard: {
-    width: CARD_WIDTH,
-    marginRight: 20,
-  },
+  petCard: { width: CARD_WIDTH, marginRight: 20 },
   petCardContent: {
     backgroundColor: "#fff",
     padding: 20,
@@ -332,46 +317,15 @@ const styles = StyleSheet.create({
     elevation: 4,
     alignItems: "center",
   },
-  petImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 10,
-    borderWidth: 2,
-    borderColor: "#A8BBA3",
-  },
-  petImagePlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#f0f0f0",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 10,
-  },
+  petImage: { width: 80, height: 80, borderRadius: 40, marginBottom: 10, borderWidth: 2, borderColor: "#A8BBA3" },
+  petImagePlaceholder: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center", marginBottom: 10 },
   petInfo: { alignItems: "center" },
   petName: { fontSize: 16, fontWeight: "bold", color: "#000" },
   petBreed: { fontSize: 13, color: "#666" },
   petStat: { fontSize: 12, color: "#A8BBA3" },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    width: width - 60,
-    padding: 20,
-  },
+  emptyState: { alignItems: "center", justifyContent: "center", width: width - 60, padding: 20 },
   emptyStateText: { marginTop: 10, fontSize: 16, color: "#777" },
-  addPetButton: {
-    backgroundColor: "#A8BBA3",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    position: "absolute",
-    bottom: 20,
-    right: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 6,
-  },
+  addPetButton: { backgroundColor: "#A8BBA3", width: 60, height: 60, borderRadius: 30, position: "absolute", bottom: 20, right: 20, justifyContent: "center", alignItems: "center", elevation: 6 },
 });
 
 export default ProfileIndex;
