@@ -70,6 +70,14 @@ const DashboardLayout = () => {
             ),
           }}
         />
+        <Tabs.Screen
+          name="home"
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <MaterialIcons name="home" color={color} size={size} />
+            ),
+          }}
+        />
       </Tabs>
     </SafeAreaView>
   );

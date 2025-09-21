@@ -23,6 +23,7 @@ import {
   StyleSheet
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { LinearGradient } from 'expo-linear-gradient';
 import { auth } from "../../../firebase";
 import { addPet, deletePet, getPetById, updatePet } from "../../../services/petService";
 import { Pet, PetFormData } from "../../../types/pet";
@@ -34,25 +35,13 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 const { width, height } = Dimensions.get('window');
 
-// Breed options categorized by pet type
-const BREED_OPTIONS = {
-  dog: [
-    "Labrador Retriever", "German Shepherd", "Golden Retriever", "Bulldog", 
-    "Beagle", "Poodle", "Siberian Husky", "Boxer", "Dachshund", "Shih Tzu"
-  ],
-  cat: [
-    "Siamese", "Persian", "Maine Coon", "Bengal", "Sphynx", 
-    "British Shorthair", "Ragdoll", "Scottish Fold", "American Shorthair", "Russian Blue"
-  ],
-  bird: [
-    "Parakeet", "Cockatiel", "Lovebird", "Canary", "Finch", 
-    "Parrotlet", "Conure", "African Grey", "Macaw", "Cockatoo"
-  ],
-  other: [
-    "Rabbit", "Hamster", "Guinea Pig", "Turtle", "Snake",
-    "Lizard", "Fish", "Ferret", "Chinchilla", "Hedgehog"
-  ]
-};
+// Pet type categories for buttons
+const PET_TYPES = [
+  { id: "dog", label: "Dog", icon: "pets", breeds: ["Labrador Retriever", "German Shepherd", "Golden Retriever", "Bulldog", "Beagle", "Poodle", "Siberian Husky", "Boxer", "Dachshund", "Shih Tzu"] },
+  { id: "cat", label: "Cat", icon: "pets", breeds: ["Siamese", "Persian", "Maine Coon", "Bengal", "Sphynx", "British Shorthair", "Ragdoll", "Scottish Fold", "American Shorthair", "Russian Blue"] },
+  { id: "bird", label: "Bird", icon: "pets", breeds: ["Parakeet", "Cockatiel", "Lovebird", "Canary", "Finch", "Parrotlet", "Conure", "African Grey", "Macaw", "Cockatoo"] },
+  { id: "other", label: "Other", icon: "pets", breeds: ["Rabbit", "Hamster", "Guinea Pig", "Turtle", "Snake", "Lizard", "Fish", "Ferret", "Chinchilla", "Hedgehog"] }
+];
 
 // Custom hook for form management
 const usePetForm = (initialPet?: Pet | null) => {
@@ -138,7 +127,7 @@ const PetProfileDetail = () => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showBreedDropdown, setShowBreedDropdown] = useState(false);
-  const [showPetTypeDropdown, setShowPetTypeDropdown] = useState(false);
+  const [selectedPetType, setSelectedPetType] = useState<string>("dog");
 
   // Custom hooks
   const { formData, petType, setPetType, updateFormField, resetForm } = usePetForm(pet);
@@ -313,11 +302,12 @@ const PetProfileDetail = () => {
     if (!pet) return;
 
     // Try to determine pet type from breed
-    const foundType = Object.entries(BREED_OPTIONS).find(([type, breeds]) => 
-      breeds.includes(pet.breed)
+    const foundType = PET_TYPES.find(type => 
+      type.breeds.some(breed => breed.toLowerCase().includes(pet.breed.toLowerCase()))
     );
     if (foundType) {
-      setPetType(foundType[0]);
+      setSelectedPetType(foundType.id);
+      setPetType(foundType.id);
     }
     
     setShowEditForm(true);
@@ -356,17 +346,17 @@ const PetProfileDetail = () => {
     );
   };
 
+  // Select pet type
+  const selectPetType = (type: string) => {
+    setSelectedPetType(type);
+    setPetType(type);
+    updateFormField('breed', ''); // Reset breed when type changes
+  };
+
   // Select breed from dropdown
   const selectBreed = (breed: string) => {
     updateFormField('breed', breed);
     setShowBreedDropdown(false);
-  };
-
-  // Select pet type from dropdown
-  const selectPetType = (type: string) => {
-    setPetType(type);
-    setShowPetTypeDropdown(false);
-    updateFormField('breed', ''); // Reset breed when type changes
   };
 
   // Effects
@@ -398,64 +388,40 @@ const PetProfileDetail = () => {
   });
 
   // Render components
-  const renderDropdownModal = (type: 'petType' | 'breed') => {
-    const isPetType = type === 'petType';
-    const visible = isPetType ? showPetTypeDropdown : showBreedDropdown;
-    const setVisible = isPetType ? setShowPetTypeDropdown : setShowBreedDropdown;
-    const title = isPetType ? 'Select Pet Type' : 'Select Breed';
-    const data = isPetType ? Object.keys(BREED_OPTIONS) : BREED_OPTIONS[petType as keyof typeof BREED_OPTIONS];
-    const onSelect = isPetType ? selectPetType : selectBreed;
-    const selectedValue = isPetType ? petType : formData.breed;
+  const renderBreedDropdown = () => {
+    const selectedType = PET_TYPES.find(type => type.id === selectedPetType);
+    if (!selectedType) return null;
 
     return (
       <Modal
-        visible={visible}
+        visible={showBreedDropdown}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setVisible(false)}
+        onRequestClose={() => setShowBreedDropdown(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setVisible(false)}>
+        <TouchableWithoutFeedback onPress={() => setShowBreedDropdown(false)}>
           <View style={styles.modalOverlay}>
-            <View style={[styles.dropdownModal, !isPetType && { maxHeight: height * 0.6 }]}>
-              <Text style={styles.dropdownTitle}>{title}</Text>
-              {!isPetType && (
-                <ScrollView>
-                  {data.map((item: string) => (
-                    <TouchableOpacity
-                      key={item}
-                      style={[
-                        styles.dropdownItem,
-                        selectedValue === item && styles.dropdownItemSelected
-                      ]}
-                      onPress={() => onSelect(item)}
-                    >
-                      <Text style={[
-                        styles.dropdownItemText,
-                        selectedValue === item && styles.dropdownItemTextSelected
-                      ]}>
-                        {item}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
-              {isPetType && data.map((item: string) => (
-                <TouchableOpacity
-                  key={item}
-                  style={[
-                    styles.dropdownItem,
-                    selectedValue === item && styles.dropdownItemSelected
-                  ]}
-                  onPress={() => onSelect(item)}
-                >
-                  <Text style={[
-                    styles.dropdownItemText,
-                    selectedValue === item && styles.dropdownItemTextSelected
-                  ]}>
-                    {item.charAt(0).toUpperCase() + item.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <View style={[styles.dropdownModal, { maxHeight: height * 0.6 }]}>
+              <Text style={styles.dropdownTitle}>Select {selectedType.label} Breed</Text>
+              <ScrollView>
+                {selectedType.breeds.map((breed: string) => (
+                  <TouchableOpacity
+                    key={breed}
+                    style={[
+                      styles.dropdownItem,
+                      formData.breed === breed && styles.dropdownItemSelected
+                    ]}
+                    onPress={() => selectBreed(breed)}
+                  >
+                    <Text style={[
+                      styles.dropdownItemText,
+                      formData.breed === breed && styles.dropdownItemTextSelected
+                    ]}>
+                      {breed}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
           </View>
         </TouchableWithoutFeedback>
@@ -480,7 +446,7 @@ const PetProfileDetail = () => {
             onPress={isNewPet ? () => router.back() : () => setShowEditForm(false)} 
             style={styles.closeButton}
           >
-            <MaterialIcons name="close" size={24} color="#000" />
+            <MaterialIcons name="close" size={24} color="black" />
           </TouchableOpacity>
         </View>
         
@@ -493,27 +459,48 @@ const PetProfileDetail = () => {
             maxLength={50}
           />
           
-          {/* Pet Type Selector */}
-          <TouchableOpacity 
-            style={styles.dropdownSelector}
-            onPress={() => setShowPetTypeDropdown(true)}
-          >
-            <Text style={styles.dropdownTextSelected}>
-              {petType.charAt(0).toUpperCase() + petType.slice(1)}
-            </Text>
-            <MaterialIcons name="arrow-drop-down" size={24} color="#000" />
-          </TouchableOpacity>
+          {/* Pet Type Selector Buttons */}
+          <View style={styles.petTypeContainer}>
+            <Text style={styles.sectionLabel}>Pet Type</Text>
+            <View style={styles.petTypeButtons}>
+              {PET_TYPES.map((type) => (
+                <TouchableOpacity
+                  key={type.id}
+                  style={[
+                    styles.petTypeButton,
+                    selectedPetType === type.id && styles.petTypeButtonActive
+                  ]}
+                  onPress={() => selectPetType(type.id)}
+                >
+                  <MaterialIcons 
+                    name={type.icon as any} 
+                    size={20} 
+                    color={selectedPetType === type.id ? "white" : "black"} 
+                  />
+                  <Text style={[
+                    styles.petTypeButtonText,
+                    selectedPetType === type.id && styles.petTypeButtonTextActive
+                  ]}>
+                    {type.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
           
           {/* Breed Selector */}
-          <TouchableOpacity 
-            style={styles.dropdownSelector}
-            onPress={() => setShowBreedDropdown(true)}
-          >
-            <Text style={formData.breed ? styles.dropdownTextSelected : styles.dropdownTextPlaceholder}>
-              {formData.breed || "Select Breed"}
-            </Text>
-            <MaterialIcons name="arrow-drop-down" size={24} color="#000" />
-          </TouchableOpacity>
+          <View style={styles.breedContainer}>
+            <Text style={styles.sectionLabel}>Breed</Text>
+            <TouchableOpacity 
+              style={styles.dropdownSelector}
+              onPress={() => setShowBreedDropdown(true)}
+            >
+              <Text style={formData.breed ? styles.dropdownTextSelected : styles.dropdownTextPlaceholder}>
+                {formData.breed || `Select ${PET_TYPES.find(t => t.id === selectedPetType)?.label} Breed`}
+              </Text>
+              <MaterialIcons name="arrow-drop-down" size={24} color="black" />
+            </TouchableOpacity>
+          </View>
           
           <TextInput
             placeholder="Age (years)"
@@ -575,7 +562,7 @@ const PetProfileDetail = () => {
   if (!userId) {
     return (
       <View style={styles.centerContainer}>
-        <MaterialIcons name="person-off" size={48} color="#A376A2" />
+        <MaterialIcons name="person-off" size={48} color="black" />
         <Text style={styles.errorText}>Please log in to view pet profiles</Text>
       </View>
     );
@@ -585,9 +572,9 @@ const PetProfileDetail = () => {
   if (isNewPet) {
     return (
       <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="white" />
         {showEditForm && renderEditForm()}
-        {renderDropdownModal('petType')}
-        {renderDropdownModal('breed')}
+        {renderBreedDropdown()}
       </View>
     );
   }
@@ -596,7 +583,7 @@ const PetProfileDetail = () => {
   if (refreshing && !pet) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#A376A2" />
+        <ActivityIndicator size="large" color="black" />
         <Text style={styles.loadingText}>Loading pet details...</Text>
       </View>
     );
@@ -606,7 +593,7 @@ const PetProfileDetail = () => {
   if (!pet) {
     return (
       <View style={styles.centerContainer}>
-        <MaterialIcons name="pets" size={48} color="#A376A2" />
+        <MaterialIcons name="pets" size={48} color="black" />
         <Text style={styles.errorText}>Pet not found</Text>
         <TouchableOpacity 
           onPress={() => router.back()} 
@@ -621,7 +608,7 @@ const PetProfileDetail = () => {
   // Pet details view
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar barStyle="dark-content" backgroundColor="white" />
       
       {/* Animated Header */}
       <Animated.View 
@@ -633,14 +620,16 @@ const PetProfileDetail = () => {
           }
         ]}
       >
-        <TouchableOpacity 
-          onPress={() => router.back()}
-          style={styles.backButtonHeader}
-        >
-          <MaterialIcons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{pet.name}</Text>
-        <Text style={styles.headerSubtitle}>{pet.breed}</Text>
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            onPress={() => router.back()}
+            style={styles.backButtonHeader}
+          >
+            <MaterialIcons name="arrow-back" size={24} color="black" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{pet.name}</Text>
+          <Text style={styles.headerSubtitle}>{pet.breed}</Text>
+        </View>
       </Animated.View>
 
       <Animated.ScrollView 
@@ -656,8 +645,8 @@ const PetProfileDetail = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={loadPet}
-            colors={["#A376A2"]}
-            tintColor="#A376A2"
+            colors={["black"]}
+            tintColor="black"
           />
         }
       >
@@ -667,7 +656,7 @@ const PetProfileDetail = () => {
             <Image source={{ uri: pet.image }} style={styles.petImage} />
           ) : (
             <View style={styles.placeholderImage}>
-              <MaterialIcons name="pets" size={60} color="#A376A2" />
+              <MaterialIcons name="pets" size={60} color="black" />
             </View>
           )}
         </View>
@@ -675,7 +664,7 @@ const PetProfileDetail = () => {
         {/* Pet Details */}
         <View style={styles.detailsContainer}>
           <View style={styles.detailRow}>
-            <MaterialIcons name="pets" size={24} color="#A376A2" />
+            <MaterialIcons name="pets" size={24} color="black" />
             <View style={styles.detailTextContainer}>
               <Text style={styles.detailLabel}>Name</Text>
               <Text style={styles.detailValue}>{pet.name}</Text>
@@ -683,7 +672,7 @@ const PetProfileDetail = () => {
           </View>
 
           <View style={styles.detailRow}>
-            <MaterialIcons name="category" size={24} color="#A376A2" />
+            <MaterialIcons name="category" size={24} color="black" />
             <View style={styles.detailTextContainer}>
               <Text style={styles.detailLabel}>Breed</Text>
               <Text style={styles.detailValue}>{pet.breed}</Text>
@@ -691,7 +680,7 @@ const PetProfileDetail = () => {
           </View>
 
           <View style={styles.detailRow}>
-            <MaterialIcons name="cake" size={24} color="#A376A2" />
+            <MaterialIcons name="cake" size={24} color="black" />
             <View style={styles.detailTextContainer}>
               <Text style={styles.detailLabel}>Age</Text>
               <Text style={styles.detailValue}>{pet.age} years</Text>
@@ -699,7 +688,7 @@ const PetProfileDetail = () => {
           </View>
 
           <View style={styles.detailRow}>
-            <MaterialIcons name="fitness-center" size={24} color="#A376A2" />
+            <MaterialIcons name="monitor-weight" size={24} color="black" />
             <View style={styles.detailTextContainer}>
               <Text style={styles.detailLabel}>Weight</Text>
               <Text style={styles.detailValue}>{pet.weight} kg</Text>
@@ -730,9 +719,8 @@ const PetProfileDetail = () => {
       {/* Edit Form Modal */}
       {showEditForm && renderEditForm()}
 
-      {/* Dropdown Modals */}
-      {renderDropdownModal('petType')}
-      {renderDropdownModal('breed')}
+      {/* Breed Dropdown Modal */}
+      {renderBreedDropdown()}
     </View>
   );
 };
@@ -740,13 +728,13 @@ const PetProfileDetail = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: 'white',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: 'white',
     padding: 20,
   },
   errorText: {
@@ -757,13 +745,13 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#A376A2',
+    color: 'black',
     marginTop: 16,
   },
   backButton: {
     marginTop: 20,
     padding: 12,
-    backgroundColor: '#A376A2',
+    backgroundColor: 'black',
     borderRadius: 8,
   },
   backButtonText: {
@@ -772,9 +760,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  headerContent: {
+    width: '100%',
     paddingTop: 50,
     paddingHorizontal: 20,
+    paddingBottom: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -787,13 +783,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
+    color: 'black',
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 10,
+    color: '#666',
   },
   scrollView: {
     flex: 1,
@@ -842,7 +837,7 @@ const styles = StyleSheet.create({
   detailValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: '#000',
   },
   actionButtonsContainer: {
     flexDirection: 'row',
@@ -853,7 +848,7 @@ const styles = StyleSheet.create({
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#A376A2',
+    backgroundColor: 'black',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
@@ -870,7 +865,7 @@ const styles = StyleSheet.create({
   deleteButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ff3b30',
+    backgroundColor: '#000',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
@@ -896,8 +891,8 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   newPetFormContainer: {
-    width: '90%',
-    maxHeight: '80%',
+    width: '95%',
+    maxHeight: '90%',
     backgroundColor: 'white',
     borderRadius: 12,
     overflow: 'hidden',
@@ -907,19 +902,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
+    paddingTop: 30,
+    backgroundColor: '#f5f5f5',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#e0e0e0',
   },
   formTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: 'black',
   },
   closeButton: {
     padding: 4,
   },
   formScrollView: {
     padding: 16,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 10,
   },
   input: {
     borderWidth: 1,
@@ -928,6 +931,44 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
     fontSize: 16,
+    color: '#000',
+  },
+  petTypeContainer: {
+    marginBottom: 20,
+  },
+  petTypeButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  petTypeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'black',
+    width: '48%',
+    justifyContent: 'center',
+  },
+  petTypeButtonActive: {
+    backgroundColor: 'black',
+    borderColor: 'black',
+  },
+  petTypeButtonText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'black',
+  },
+  petTypeButtonTextActive: {
+    color: 'white',
+  },
+  breedContainer: {
+    marginBottom: 16,
   },
   dropdownSelector: {
     flexDirection: 'row',
@@ -937,11 +978,10 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
-    marginBottom: 16,
   },
   dropdownTextSelected: {
     fontSize: 16,
-    color: '#333',
+    color: '#000',
   },
   dropdownTextPlaceholder: {
     fontSize: 16,
@@ -955,7 +995,7 @@ const styles = StyleSheet.create({
   imageButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#A376A2',
+    backgroundColor: 'black',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -966,7 +1006,7 @@ const styles = StyleSheet.create({
   cameraButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#5e5e5e',
+    backgroundColor: '#333',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -988,7 +1028,7 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   saveButton: {
-    backgroundColor: '#A376A2',
+    backgroundColor: 'black',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -1013,13 +1053,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    maxHeight: height * 0.7,
   },
   dropdownTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
-    color: '#333',
+    color: '#000',
   },
   dropdownItem: {
     padding: 12,
@@ -1027,14 +1066,14 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   dropdownItemSelected: {
-    backgroundColor: '#f0e6f0',
+    backgroundColor: '#f0f0f0',
   },
   dropdownItemText: {
     fontSize: 16,
-    color: '#333',
+    color: '#000',
   },
   dropdownItemTextSelected: {
-    color: '#A376A2',
+    color: 'black',
     fontWeight: '600',
   },
 });
