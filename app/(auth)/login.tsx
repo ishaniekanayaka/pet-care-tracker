@@ -1,26 +1,31 @@
-import { login } from "@/services/authService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Image,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_KEYS } from "@/constants/keys";
+import { login } from "@/services/authService";
+import { LinearGradient } from "expo-linear-gradient";
 
 const Login = () => {
   const router = useRouter();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
   const [isLoadingLogin, setIsLoadingLogin] = useState<boolean>(false);
 
   const handleLogin = async () => {
@@ -28,12 +33,12 @@ const Login = () => {
     setIsLoadingLogin(true);
 
     try {
-      const loggedInUser = await login(email, password); 
-      // ⚠️ make sure login() returns user object + token
-
+      const loggedInUser = await login(email, password);
       Alert.alert("Success", "Logged in successfully!");
 
-      const key = `${STORAGE_KEYS.ONBOARDED}:${loggedInUser.user?.uid || loggedInUser.user?.email}`;
+      const key = `${STORAGE_KEYS.ONBOARDED}:${
+        loggedInUser.user?.uid || loggedInUser.user?.email
+      }`;
       const seen = await AsyncStorage.getItem(key);
 
       if (seen) {
@@ -54,33 +59,40 @@ const Login = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       className="flex-1 bg-white"
     >
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View className="flex-1 justify-center items-center p-6 bg-white">
           {/* Logo Section */}
-          <View className="items-center mb-8">
-            <View className="w-32 h-32 rounded-full bg-[#F3F7F0] justify-center items-center mb-4 shadow-sm">
-              <Text className="text-5xl">🐾</Text>
-            </View>
-            <Text className="text-3xl font-bold text-[#5D688A] mt-4">
-              PetCare
-            </Text>
-            <Text className="text-lg text-gray-600 mt-2">
+          <View className="items-center mb-10">
+            <LinearGradient
+              colors={["#A8BBA3", "#ffffff"]}
+              style={styles.logoCircle}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Image
+                source={require('../../assets/images/petgif.gif')} // add your image here
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </LinearGradient>
+
+            <Text className="text-4xl font-extrabold text-black mt-4">PetCare</Text>
+            <Text className="text-lg text-gray-700 mt-2 text-center px-4">
               Loving care for your furry friends
             </Text>
           </View>
 
           {/* Form Section */}
           <View className="w-full max-w-md">
-            <Text className="text-2xl font-bold mb-6 text-[#5D688A] text-center">
+            <Text className="text-2xl font-bold mb-6 text-black text-center">
               Welcome Back
             </Text>
 
             <View className="mb-5">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
-                Email
-              </Text>
+              <Text className="text-sm font-semibold text-black mb-2">Email</Text>
               <TextInput
-                className="border border-[#D1D9E6] p-4 w-full rounded-xl bg-white shadow-sm"
+                className="border border-gray-400 p-4 w-full rounded-xl bg-white shadow-md text-black text-base"
                 placeholder="Enter your email"
                 placeholderTextColor="#9CA3AF"
                 value={email}
@@ -90,23 +102,31 @@ const Login = () => {
               />
             </View>
 
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
-                Password
-              </Text>
+            <View className="mb-6 relative">
+              <Text className="text-sm font-semibold text-black mb-2">Password</Text>
               <TextInput
-                className="border border-[#D1D9E6] p-4 w-full rounded-xl bg-white shadow-sm"
+                className="border border-gray-400 p-4 w-full rounded-xl bg-white shadow-md text-black text-base"
                 placeholder="Enter your password"
                 placeholderTextColor="#9CA3AF"
-                secureTextEntry
+                secureTextEntry={!isPasswordVisible}
                 value={password}
                 onChangeText={setPassword}
               />
+              <Pressable
+                onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                className="absolute right-4 top-12"
+              >
+                <Ionicons
+                  name={isPasswordVisible ? "eye" : "eye-off"}
+                  size={24}
+                  color="#A8BBA3"
+                />
+              </Pressable>
             </View>
 
             <TouchableOpacity
-              className={`p-5 rounded-xl mt-2 w-full shadow-sm ${
-                isLoadingLogin ? "bg-[#9BA5C2]" : "bg-[#5D688A]"
+              className={`p-5 rounded-xl mt-2 w-full shadow-lg ${
+                isLoadingLogin ? "bg-[#A8BBA3]/50" : "bg-[#A8BBA3]"
               }`}
               onPress={handleLogin}
               disabled={isLoadingLogin}
@@ -119,7 +139,7 @@ const Login = () => {
                     <Text className="text-white text-center font-bold text-lg mr-2">
                       Sign In
                     </Text>
-                    <Ionicons name="paw" size={20} color="#fff" />
+                    <Ionicons name="paw" size={22} color="#fff" />
                   </>
                 )}
               </View>
@@ -128,9 +148,9 @@ const Login = () => {
 
           {/* Sign up Section */}
           <View className="flex-row mt-8">
-            <Text className="text-gray-600">Don't have an account? </Text>
+            <Text className="text-gray-700 text-base">Don't have an account? </Text>
             <Pressable onPress={() => router.push("/register")}>
-              <Text className="text-[#5D688A] font-bold">Sign Up</Text>
+              <Text className="text-[#A8BBA3] font-bold text-base">Sign Up</Text>
             </Pressable>
           </View>
         </View>
@@ -138,5 +158,25 @@ const Login = () => {
     </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  logoCircle: {
+    width: 144,
+    height: 144,
+    borderRadius: 72,
+    marginBottom: 16,
+    shadowColor: "#A8BBA3",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logoImage: {
+    width: 200,
+    height: 100,
+  },
+});
 
 export default Login;
