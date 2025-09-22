@@ -1,19 +1,13 @@
-export interface FeedingSchedule {
+export interface FeedingRecord {
   id?: string;
   petId: string;
-  foodType: string;
-  amount: string;
-  time: string; // Format: "HH:MM" (24-hour format)
-  frequency: 'daily' | 'weekly' | 'monthly';
-  notificationIds?: string[]; // Array of notification IDs for cancellation
-  isActive?: boolean; // To enable/disable notifications without deleting
-  notes?: string; // Optional notes about the feeding
+  food: string;
+  quantity: string;
+  date: string;       // first feeding date YYYY-MM-DD
+  time?: string;      // HH:mm
+  repeat?: "none" | "daily" | "weekly"; // new field
+  notes?: string;
+  notificationIds?: string[];
   createdAt?: Date;
   updatedAt?: Date;
-}
-
-export interface NotificationData {
-  scheduleId?: string;
-  petId: string;
-  type: 'feeding_reminder';
 }
