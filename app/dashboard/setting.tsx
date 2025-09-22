@@ -82,19 +82,25 @@ const Settings = () => {
         {
           text: "Send",
           onPress: async () => {
+            if (!user?.email) {
+                Alert.alert("Error", "No email found for current user");
+                return;
+            }
+
             try {
-              setLoading(true);
-              await sendResetPasswordEmail(user.email);
-              Alert.alert(
+                setLoading(true);
+                await sendResetPasswordEmail(user.email); // now guaranteed string
+                Alert.alert(
                 "Success",
                 "Password reset email sent! Check your inbox."
-              );
+                );
             } catch (error: any) {
-              Alert.alert("Error", error.message);
+                Alert.alert("Error", error.message);
             } finally {
-              setLoading(false);
+                setLoading(false);
             }
-          },
+            }
+
         },
       ]
     );
@@ -244,12 +250,13 @@ const Settings = () => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account</Text>
             <View style={styles.settingsGroup}>
-              <SettingsItem
+            <SettingsItem
                 icon="email"
                 title="Change Email"
-                subtitle={user?.email}
+                subtitle={user?.email ?? undefined} // <-- fix here
                 onPress={() => setIsChangeEmailModalVisible(true)}
-              />
+            />
+
               <SettingsItem
                 icon="lock"
                 title="Change Password"
