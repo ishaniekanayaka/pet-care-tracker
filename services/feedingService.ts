@@ -36,6 +36,12 @@ export const scheduleFeedingNotifications = async (record: FeedingRecord, petNam
     const triggerDate = new Date(record.date);
     triggerDate.setHours(hours, minutes, 0, 0);
 
+    // Fix: Use the correct type with explicit type property
+    const trigger: Notifications.DateTriggerInput = {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: triggerDate,
+    };
+
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title: `🍽️ Feeding Time for ${petName}`,
@@ -43,7 +49,7 @@ export const scheduleFeedingNotifications = async (record: FeedingRecord, petNam
         data: { recordId: record.id, petId: record.petId, type: "feeding_reminder" },
         sound: "default",
       },
-      trigger: { date: triggerDate },
+      trigger,
     });
 
     return [notificationId];

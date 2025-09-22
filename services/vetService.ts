@@ -28,21 +28,22 @@ export interface Vet {
 const vetsCollection = collection(db, "vets");
 
 /**
- * Get vets filtered by district
+ * Get vets filtered by district (without orderBy to avoid index issues)
  */
 export const getVetsByDistrict = async (district: string): Promise<Vet[]> => {
   try {
     const q = query(
       vetsCollection, 
-      where("district", "==", district),
-      orderBy("name", "asc")
+      where("district", "==", district)
     );
     const querySnapshot = await getDocs(q);
     const vets: Vet[] = [];
     querySnapshot.forEach((doc) => {
       vets.push({ id: doc.id, ...(doc.data() as Vet) });
     });
-    return vets;
+    
+    // Sort client-side to avoid index requirement
+    return vets.sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
     console.error("Error fetching vets by district:", error);
     return [];
@@ -50,17 +51,24 @@ export const getVetsByDistrict = async (district: string): Promise<Vet[]> => {
 };
 
 /**
- * Get all vets without filtering
+ * Get all vets without filtering (simplified)
  */
 export const getAllVets = async (): Promise<Vet[]> => {
   try {
-    const q = query(vetsCollection, orderBy("district", "asc"), orderBy("name", "asc"));
-    const querySnapshot = await getDocs(q);
+    // Simple query without compound orderBy to avoid index issues
+    const querySnapshot = await getDocs(vetsCollection);
     const vets: Vet[] = [];
     querySnapshot.forEach((doc) => {
       vets.push({ id: doc.id, ...(doc.data() as Vet) });
     });
-    return vets;
+    
+    // Sort client-side
+    return vets.sort((a, b) => {
+      // First by district, then by name
+      const districtCompare = a.district.localeCompare(b.district);
+      if (districtCompare !== 0) return districtCompare;
+      return a.name.localeCompare(b.name);
+    });
   } catch (error) {
     console.error("Error fetching all vets:", error);
     return [];
@@ -68,21 +76,22 @@ export const getAllVets = async (): Promise<Vet[]> => {
 };
 
 /**
- * Get emergency vets only
+ * Get emergency vets only (without orderBy)
  */
 export const getEmergencyVets = async (): Promise<Vet[]> => {
   try {
     const q = query(
       vetsCollection, 
-      where("emergency", "==", true),
-      orderBy("name", "asc")
+      where("emergency", "==", true)
     );
     const querySnapshot = await getDocs(q);
     const vets: Vet[] = [];
     querySnapshot.forEach((doc) => {
       vets.push({ id: doc.id, ...(doc.data() as Vet) });
     });
-    return vets;
+    
+    // Sort client-side
+    return vets.sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
     console.error("Error fetching emergency vets:", error);
     return [];
@@ -148,7 +157,6 @@ export const deleteVet = async (vetId: string): Promise<void> => {
 export const searchVets = async (searchTerm: string): Promise<Vet[]> => {
   try {
     // Firestore doesn't support full-text search, so we get all vets and filter client-side
-    // For production, consider using Algolia or similar for better search
     const allVets = await getAllVets();
     
     const filteredVets = allVets.filter(vet => 
