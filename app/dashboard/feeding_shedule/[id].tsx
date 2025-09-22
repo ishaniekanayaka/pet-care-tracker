@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,274 +7,752 @@ import {
   Alert,
   Modal,
   TextInput,
-  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-
 import { Pet } from "../../../types/pet";
 import { FeedingRecord } from "../../../types/feeding";
 import {
-  getPetById,
   getFeedingSchedulesByPet,
   addFeedingSchedule,
   updateFeedingSchedule,
   deleteFeedingSchedule,
+  getPetById,
 } from "../../../services/feedingService";
 
 const PetFeedingDetail = () => {
-  const { id: petId } = useLocalSearchParams<{ id: string }>();
-
+  const { id } = useLocalSearchParams();
+  const router = useRouter();
   const [pet, setPet] = useState<Pet | null>(null);
   const [feedingRecords, setFeedingRecords] = useState<FeedingRecord[]>([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<FeedingRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addingRecord, setAddingRecord] = useState(false);
 
-  // Form state
-  const [food, setFood] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [notes, setNotes] = useState("");
-  const [repeat, setRepeat] = useState<"none" | "daily" | "weekly">("none");
-  const [dateObj, setDateObj] = useState(new Date());
+  const today = new Date();
+  const [newRecord, setNewRecord] = useState({
+    food: "",
+    quantity: "",
+    date: today.toISOString().split("T")[0],
+    time: today.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    notes: "",
+    repeat: "none" as "none" | "daily" | "weekly",
+  });
+
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
-  // Load data
-  const loadData = async () => {
-    if (!petId) return;
-    try {
-      const petData = await getPetById(petId);
-      setPet(petData);
-
-      const feedingData = await getFeedingSchedulesByPet(petId);
-      setFeedingRecords(
-        feedingData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      );
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Failed to load data");
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, [petId]);
-
-  // Open modal
-  const openAddModal = () => {
-    setEditingRecord(null);
-    setFood("");
-    setQuantity("");
-    setNotes("");
-    setRepeat("none");
-    setDateObj(new Date());
-    setModalVisible(true);
-  };
-
-  const openEditModal = (record: FeedingRecord) => {
-    setEditingRecord(record);
-    setFood(record.food);
-    setQuantity(record.quantity);
-    setNotes(record.notes || "");
-    setRepeat(record.repeat || "none");
-
-    const [hours, minutes] = (record.time || "09:00").split(":").map(Number);
-    const d = new Date(record.date);
-    d.setHours(hours, minutes, 0, 0);
-    setDateObj(d);
-
-    setModalVisible(true);
-  };
-
-  // Save record
-  const saveRecord = async () => {
-    if (!food || !quantity) {
-      Alert.alert("Error", "Food and quantity are required");
+  // Load pet and feeding records
+  const loadPet = useCallback(async () => {
+    if (!id || typeof id !== "string") {
+      console.log("Invalid pet ID:", id);
       return;
     }
-    if (!pet) return;
-
-    const dateStr = dateObj.toISOString().split("T")[0];
-    const timeStr = dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-    const newRecord: FeedingRecord = {
-      petId,
-      food,
-      quantity,
-      date: dateStr,
-      time: timeStr,
-      notes,
-      repeat,
-    };
 
     try {
-      if (editingRecord) {
-        await updateFeedingSchedule(editingRecord.id!, newRecord, pet.name);
-        Alert.alert("Success", "Feeding record updated");
+      const petData = await getPetById(id);
+      if (petData) {
+        setPet(petData);
       } else {
-        await addFeedingSchedule(newRecord, pet.name);
-        Alert.alert("Success", "Feeding record added");
+        Alert.alert("Error", "Pet not found");
       }
-      setModalVisible(false);
-      loadData();
     } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Failed to save record");
+      console.error("Error loading pet:", error);
+      Alert.alert("Error", "Failed to load pet details");
+    }
+  }, [id]);
+
+  const loadFeedingRecords = useCallback(async (showLoader = false) => {
+    if (!id || typeof id !== "string") {
+      console.log("Invalid pet ID for feeding records:", id);
+      return;
+    }
+
+    try {
+      if (showLoader) setRefreshing(true);
+      const records = await getFeedingSchedulesByPet(id);
+      setFeedingRecords(records);
+    } catch (error) {
+      console.error("Error loading feeding records:", error);
+      Alert.alert("Error", "Failed to load feeding records");
+      setFeedingRecords([]);
+    } finally {
+      if (showLoader) setRefreshing(false);
+    }
+  }, [id]);
+
+  // Initial data loading
+  useEffect(() => {
+    const initializeData = async () => {
+      if (!id) {
+        console.log("No pet ID provided");
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        await Promise.all([loadPet(), loadFeedingRecords()]);
+      } catch (error) {
+        console.error("Error during initialization:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeData();
+  }, [id, loadPet, loadFeedingRecords]);
+
+  // Handle refresh
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([loadPet(), loadFeedingRecords(true)]);
+  }, [loadPet, loadFeedingRecords]);
+
+  // Reset form function
+  const resetForm = useCallback(() => {
+    setNewRecord({
+      food: "",
+      quantity: "",
+      date: today.toISOString().split("T")[0],
+      time: today.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      notes: "",
+      repeat: "none",
+    });
+  }, [today]);
+
+  // Handle add record
+  const handleAddRecord = async () => {
+    if (!pet || !newRecord.food.trim() || !newRecord.quantity.trim()) {
+      Alert.alert("Validation Error", "Please fill in all required fields");
+      return;
+    }
+
+    setAddingRecord(true);
+    const tempId = `temp_${Date.now()}`;
+
+    try {
+      const record: FeedingRecord = {
+        petId: pet.id!,
+        food: newRecord.food.trim(),
+        quantity: newRecord.quantity.trim(),
+        date: newRecord.date,
+        time: newRecord.time,
+        notes: newRecord.notes.trim(),
+        repeat: newRecord.repeat,
+      };
+
+      // Optimistically add to UI
+      const optimisticRecord = { ...record, id: tempId };
+      setFeedingRecords(prevRecords => [optimisticRecord, ...prevRecords]);
+      
+      setShowAddModal(false);
+      resetForm();
+      
+      // Save to Firebase
+      const result = await addFeedingSchedule(record, pet.name);
+      
+      if (result) {
+        // Replace temporary record with real one
+        setFeedingRecords(prevRecords => 
+          prevRecords.map(r => 
+            r.id === tempId ? { ...record, id: result } : r
+          )
+        );
+        Alert.alert("Success", "Feeding schedule added successfully!");
+      } else {
+        throw new Error("Failed to save feeding schedule");
+      }
+
+    } catch (error) {
+      console.error("Error adding record:", error);
+      // Remove optimistic record on error
+      setFeedingRecords(prevRecords => 
+        prevRecords.filter(r => r.id !== tempId)
+      );
+      Alert.alert("Error", "Failed to add feeding schedule. Please try again.");
+    } finally {
+      setAddingRecord(false);
     }
   };
 
-  const handleDelete = async (record: FeedingRecord) => {
-    Alert.alert("Confirm", "Are you sure you want to delete this record?", [
-      { text: "Cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deleteFeedingSchedule(record.id!);
-            loadData();
-          } catch (error) {
-            console.error(error);
-            Alert.alert("Error", "Failed to delete record");
-          }
+  // Handle delete record
+  const handleDeleteRecord = async (recordId: string, recordFood: string) => {
+    Alert.alert(
+      "Delete Schedule", 
+      `Are you sure you want to delete "${recordFood}" schedule?`, 
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const recordToDelete = feedingRecords.find(r => r.id === recordId);
+            
+            // Optimistically remove from UI
+            setFeedingRecords(prevRecords => 
+              prevRecords.filter(r => r.id !== recordId)
+            );
+
+            try {
+              await deleteFeedingSchedule(recordId);
+              Alert.alert("Success", "Feeding schedule deleted successfully");
+            } catch (error) {
+              console.error("Error deleting record:", error);
+              // Rollback on error
+              if (recordToDelete) {
+                setFeedingRecords(prevRecords => [recordToDelete, ...prevRecords]);
+              }
+              Alert.alert("Error", "Failed to delete schedule. Please try again.");
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
-  return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      <ScrollView contentContainerStyle={{ padding: 20 }}>
-        {pet && (
-          <View style={{ marginBottom: 20, alignItems: "center" }}>
-            <Text style={{ fontSize: 22, fontWeight: "bold" }}>{pet.name}</Text>
-            <Text style={{ fontSize: 16, color: "#555" }}>{pet.breed}</Text>
-          </View>
-        )}
+  // Loading state
+  if (loading) {
+    return (
+      <View style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#f5f5f5",
+      }}>
+        <ActivityIndicator size="large" color="#A8BBA3" />
+        <MaterialIcons name="pets" size={48} color="#A8BBA3" style={{ marginTop: 20 }} />
+        <Text style={{ marginTop: 10, color: "#666", fontSize: 16 }}>
+          Loading feeding details...
+        </Text>
+      </View>
+    );
+  }
 
+  // Error state
+  if (!pet) {
+    return (
+      <View style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#f5f5f5",
+      }}>
+        <MaterialIcons name="error" size={48} color="#ff4444" />
+        <Text style={{ marginTop: 10, color: "#ff4444", fontSize: 16 }}>
+          Pet not found
+        </Text>
         <TouchableOpacity
-          onPress={openAddModal}
+          onPress={() => router.back()}
           style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: "#A8BBA3",
-            padding: 10,
-            borderRadius: 10,
-            marginBottom: 15,
+            marginTop: 20,
+            backgroundColor: "#5D688A",
+            padding: 12,
+            borderRadius: 8,
           }}
         >
-          <MaterialIcons name="add" size={24} color="#fff" />
-          <Text style={{ color: "#fff", fontWeight: "bold", marginLeft: 10 }}>
-            Add Feeding Record
-          </Text>
+          <Text style={{ color: "white", fontWeight: "bold" }}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView 
+      style={{ flex: 1, backgroundColor: "#f5f5f5" }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          colors={["#A8BBA3"]}
+          tintColor="#A8BBA3"
+        />
+      }
+    >
+      {/* Pet Header */}
+      <View style={{
+        backgroundColor: "#5D688A",
+        padding: 20,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+      }}>
+        <TouchableOpacity 
+          onPress={() => router.back()}
+          style={{
+            position: 'absolute',
+            top: 20,
+            left: 20,
+            zIndex: 1,
+            padding: 8,
+          }}
+        >
+          <MaterialIcons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
 
-        {feedingRecords.map((record) => (
-          <View
-            key={record.id}
-            style={{ padding: 15, backgroundColor: "#F0F0F0", borderRadius: 10, marginBottom: 10 }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: "bold" }}>
-              {record.food} ({record.quantity})
+        <View style={{ 
+          flexDirection: "row", 
+          alignItems: "center", 
+          marginBottom: 10,
+          marginTop: 20
+        }}>
+          <MaterialIcons name="pets" size={32} color="white" />
+          <Text style={{
+            fontSize: 24,
+            fontWeight: "bold",
+            color: "white",
+            marginLeft: 10,
+          }}>
+            {pet.name}'s Feeding
+          </Text>
+        </View>
+        <Text style={{ fontSize: 16, color: "rgba(255,255,255,0.8)" }}>
+          {pet.breed} • {pet.age} years • {pet.weight} kg
+        </Text>
+      </View>
+
+      {/* Feeding Records Counter */}
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        margin: 20,
+        marginBottom: 10,
+      }}>
+        <Text style={{ 
+          fontSize: 18, 
+          fontWeight: 'bold', 
+          color: '#000' 
+        }}>
+          Feeding Schedules
+        </Text>
+        <Text style={{ 
+          fontSize: 14, 
+          color: '#A8BBA3',
+          fontWeight: '600'
+        }}>
+          {feedingRecords.length} schedule{feedingRecords.length !== 1 ? 's' : ''}
+        </Text>
+      </View>
+
+      {/* Add Schedule Button */}
+      <TouchableOpacity
+        style={{
+          backgroundColor: "#A8BBA3",
+          margin: 20,
+          marginTop: 10,
+          padding: 15,
+          borderRadius: 12,
+          alignItems: "center",
+          flexDirection: 'row',
+          justifyContent: 'center',
+        }}
+        onPress={() => setShowAddModal(true)}
+      >
+        <MaterialIcons name="add" size={20} color="white" />
+        <Text style={{ 
+          color: "white", 
+          fontWeight: "bold",
+          marginLeft: 8
+        }}>
+          Add Feeding Schedule
+        </Text>
+      </TouchableOpacity>
+
+      {/* Records List */}
+      <View style={{ marginHorizontal: 20, marginBottom: 30 }}>
+        {feedingRecords.length === 0 ? (
+          <View style={{
+            padding: 40,
+            alignItems: "center",
+            backgroundColor: "white",
+            borderRadius: 12,
+            elevation: 2,
+          }}>
+            <MaterialIcons name="restaurant" size={48} color="#A8BBA3" />
+            <Text style={{ 
+              marginTop: 15, 
+              fontWeight: "bold", 
+              color: "#896C6C",
+              fontSize: 16 
+            }}>
+              No feeding schedules yet
             </Text>
-            <Text style={{ fontSize: 14 }}>
-              Date: {record.date} {record.time ? `- ${record.time}` : ""}{" "}
-              {record.repeat && record.repeat !== "none" ? `(${record.repeat})` : ""}
+            <Text style={{ 
+              marginTop: 5, 
+              color: "#999",
+              textAlign: 'center',
+              fontSize: 14
+            }}>
+              Add your pet's first feeding schedule to get started
             </Text>
-            {record.notes ? <Text style={{ fontSize: 12, color: "#555" }}>Notes: {record.notes}</Text> : null}
-            <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 10 }}>
-              <TouchableOpacity onPress={() => openEditModal(record)} style={{ marginRight: 15 }}>
-                <MaterialIcons name="edit" size={22} color="#000" />
+          </View>
+        ) : (
+          feedingRecords.map((record, index) => (
+            <View
+              key={record.id || index}
+              style={{
+                backgroundColor: "white",
+                padding: 15,
+                borderRadius: 12,
+                marginBottom: 12,
+                elevation: 2,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.1,
+                shadowRadius: 2,
+              }}
+            >
+              <View style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 5 }}>
+                    <MaterialIcons 
+                      name="restaurant" 
+                      size={18} 
+                      color="#5D688A"
+                      style={{ marginRight: 8 }}
+                    />
+                    <Text style={{ 
+                      fontWeight: "bold", 
+                      fontSize: 16, 
+                      color: "#000",
+                      flex: 1
+                    }}>
+                      {record.food} ({record.quantity})
+                    </Text>
+                  </View>
+                  
+                  <Text style={{ 
+                    color: "#5D688A", 
+                    fontSize: 12,
+                    fontWeight: '600',
+                    marginBottom: 3
+                  }}>
+                    {record.date} at {record.time}
+                    {record.repeat !== "none" && ` • ${record.repeat}`}
+                  </Text>
+                  
+                  {record.notes && record.notes.trim() && (
+                    <Text style={{ 
+                      color: "#666", 
+                      fontSize: 12, 
+                      marginTop: 5,
+                      fontStyle: 'italic'
+                    }}>
+                      {record.notes}
+                    </Text>
+                  )}
+                </View>
+
+                <TouchableOpacity 
+                  onPress={() => handleDeleteRecord(record.id!, record.food)}
+                  style={{ padding: 8 }}
+                >
+                  <MaterialIcons name="delete" size={20} color="#FF4444" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        )}
+      </View>
+
+      {/* Add Modal */}
+      <Modal visible={showAddModal} transparent animationType="slide">
+        <View style={{
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          justifyContent: "center",
+          padding: 20,
+        }}>
+          <View style={{ 
+            backgroundColor: "white", 
+            borderRadius: 12, 
+            padding: 20,
+            maxHeight: '85%'
+          }}>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 20
+            }}>
+              <Text style={{ 
+                fontWeight: "bold", 
+                fontSize: 18,
+                color: '#000'
+              }}>
+                Add Feeding Schedule
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowAddModal(false);
+                  resetForm();
+                }}
+              >
+                <MaterialIcons name="close" size={24} color="#666" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDelete(record)}>
-                <MaterialIcons name="delete" size={22} color="red" />
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Food */}
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#000',
+                marginBottom: 8
+              }}>
+                Food *
+              </Text>
+              <TextInput
+                placeholder="Enter food name"
+                value={newRecord.food}
+                onChangeText={(t) => setNewRecord({ ...newRecord, food: t })}
+                style={{
+                  borderWidth: 1,
+                  borderColor: "#ddd",
+                  padding: 12,
+                  borderRadius: 8,
+                  marginBottom: 15,
+                  fontSize: 16,
+                  backgroundColor: '#fafafa'
+                }}
+                maxLength={50}
+              />
+
+              {/* Quantity */}
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#000',
+                marginBottom: 8
+              }}>
+                Quantity *
+              </Text>
+              <TextInput
+                placeholder="Enter quantity (e.g., 1 cup, 200g)"
+                value={newRecord.quantity}
+                onChangeText={(t) => setNewRecord({ ...newRecord, quantity: t })}
+                style={{
+                  borderWidth: 1,
+                  borderColor: "#ddd",
+                  padding: 12,
+                  borderRadius: 8,
+                  marginBottom: 15,
+                  fontSize: 16,
+                  backgroundColor: '#fafafa'
+                }}
+                maxLength={30}
+              />
+
+              {/* Date */}
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#000',
+                marginBottom: 8
+              }}>
+                Date *
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowDatePicker(true)}
+                style={{
+                  borderWidth: 1,
+                  borderColor: "#ddd",
+                  padding: 12,
+                  borderRadius: 8,
+                  marginBottom: 15,
+                  backgroundColor: '#fafafa',
+                  flexDirection: 'row',
+                  alignItems: 'center'
+                }}
+              >
+                <MaterialIcons name="calendar-today" size={20} color="#A8BBA3" />
+                <Text style={{ marginLeft: 8, fontSize: 16, color: '#000' }}>
+                  {new Date(newRecord.date).toLocaleDateString()}
+                </Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={new Date(newRecord.date)}
+                  mode="date"
+                  display="default"
+                  onChange={(e, date) => {
+                    setShowDatePicker(false);
+                    if (date)
+                      setNewRecord({
+                        ...newRecord,
+                        date: date.toISOString().split("T")[0],
+                      });
+                  }}
+                />
+              )}
+
+              {/* Time */}
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#000',
+                marginBottom: 8
+              }}>
+                Time *
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowTimePicker(true)}
+                style={{
+                  borderWidth: 1,
+                  borderColor: "#ddd",
+                  padding: 12,
+                  borderRadius: 8,
+                  marginBottom: 15,
+                  backgroundColor: '#fafafa',
+                  flexDirection: 'row',
+                  alignItems: 'center'
+                }}
+              >
+                <MaterialIcons name="access-time" size={20} color="#A8BBA3" />
+                <Text style={{ marginLeft: 8, fontSize: 16, color: '#000' }}>
+                  {newRecord.time}
+                </Text>
+              </TouchableOpacity>
+              {showTimePicker && (
+                <DateTimePicker
+                  value={new Date(`${newRecord.date}T${newRecord.time}`)}
+                  mode="time"
+                  is24Hour={false}
+                  display="default"
+                  onChange={(e, date) => {
+                    setShowTimePicker(false);
+                    if (date) {
+                      const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      setNewRecord({
+                        ...newRecord,
+                        time: timeStr,
+                      });
+                    }
+                  }}
+                />
+              )}
+
+              {/* Repeat */}
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#000',
+                marginBottom: 8
+              }}>
+                Repeat
+              </Text>
+              <View style={{ 
+                flexDirection: "row", 
+                marginBottom: 15, 
+                justifyContent: 'space-between'
+              }}>
+                {["none", "daily", "weekly"].map((repeatOption) => (
+                  <TouchableOpacity
+                    key={repeatOption}
+                    onPress={() => setNewRecord({ ...newRecord, repeat: repeatOption as any })}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      borderRadius: 20,
+                      backgroundColor: newRecord.repeat === repeatOption ? "#A8BBA3" : "#f0f0f0",
+                      minWidth: 80,
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Text style={{
+                      color: newRecord.repeat === repeatOption ? "white" : "#666",
+                      fontSize: 12,
+                      fontWeight: '500',
+                      textTransform: 'capitalize'
+                    }}>
+                      {repeatOption}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Notes */}
+              <Text style={{ 
+                fontSize: 14, 
+                fontWeight: '600', 
+                color: '#000',
+                marginBottom: 8
+              }}>
+                Notes
+              </Text>
+              <TextInput
+                placeholder="Add any additional notes..."
+                value={newRecord.notes}
+                onChangeText={(t) => setNewRecord({ ...newRecord, notes: t })}
+                multiline
+                style={{
+                  borderWidth: 1,
+                  borderColor: "#ddd",
+                  padding: 12,
+                  borderRadius: 8,
+                  marginBottom: 20,
+                  height: 80,
+                  fontSize: 16,
+                  backgroundColor: '#fafafa',
+                  textAlignVertical: 'top'
+                }}
+                maxLength={200}
+              />
+            </ScrollView>
+
+            <View style={{ 
+              flexDirection: "row", 
+              justifyContent: "space-between",
+              marginTop: 10
+            }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowAddModal(false);
+                  resetForm();
+                }}
+                disabled={addingRecord}
+                style={{
+                  padding: 15,
+                  backgroundColor: "#f0f0f0",
+                  borderRadius: 8,
+                  flex: 1,
+                  marginRight: 10,
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: '#666', fontWeight: '600' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleAddRecord}
+                disabled={addingRecord}
+                style={{
+                  padding: 15,
+                  backgroundColor: addingRecord ? "#ccc" : "#A8BBA3",
+                  borderRadius: 8,
+                  flex: 1,
+                  marginLeft: 10,
+                  alignItems: "center",
+                }}
+              >
+                {addingRecord ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ color: "white", fontWeight: "bold" }}>Add Schedule</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
-        ))}
-      </ScrollView>
-
-      {/* Modal */}
-      <Modal visible={modalVisible} animationType="slide">
-        <View style={{ flex: 1, padding: 20 }}>
-          <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 15 }}>
-            {editingRecord ? "Edit Feeding" : "Add Feeding"}
-          </Text>
-
-          <TextInput placeholder="Food" value={food} onChangeText={setFood} style={styles.input} />
-          <TextInput placeholder="Quantity" value={quantity} onChangeText={setQuantity} style={styles.input} />
-          <TextInput placeholder="Notes" value={notes} onChangeText={setNotes} style={styles.input} />
-
-          {/* Date picker */}
-          <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.input}>
-            <Text>{dateObj.toDateString()}</Text>
-          </TouchableOpacity>
-          {showDatePicker && (
-            <DateTimePicker
-              value={dateObj}
-              mode="date"
-              display="default"
-              onChange={(e, selected) => {
-                setShowDatePicker(false);
-                if (selected) setDateObj(selected);
-              }}
-            />
-          )}
-
-          {/* Time picker */}
-          <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.input}>
-            <Text>{dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</Text>
-          </TouchableOpacity>
-          {showTimePicker && (
-            <DateTimePicker
-              value={dateObj}
-              mode="time"
-              is24Hour
-              display="default"
-              onChange={(e, selected) => {
-                setShowTimePicker(false);
-                if (selected) setDateObj(selected);
-              }}
-            />
-          )}
-
-          {/* Repeat buttons */}
-          <View style={{ flexDirection: "row", justifyContent: "space-around", marginTop: 10 }}>
-            {["none", "daily", "weekly"].map((r) => (
-              <TouchableOpacity
-                key={r}
-                onPress={() => setRepeat(r as any)}
-                style={{
-                  padding: 10,
-                  borderRadius: 10,
-                  backgroundColor: repeat === r ? "#A8BBA3" : "#ccc",
-                }}
-              >
-                <Text style={{ color: repeat === r ? "#fff" : "#000", fontWeight: "bold" }}>
-                  {r.charAt(0).toUpperCase() + r.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 20 }}>
-            <TouchableOpacity onPress={() => setModalVisible(false)} style={[styles.button, { backgroundColor: "#ccc" }]}>
-              <Text style={{ color: "#000" }}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={saveRecord} style={[styles.button, { backgroundColor: "#A8BBA3" }]}>
-              <Text style={{ color: "#fff" }}>{editingRecord ? "Update" : "Add"}</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 };
 
 export default PetFeedingDetail;
-
-const styles = StyleSheet.create({
-  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 10, padding: 12, marginBottom: 15 },
-  button: { padding: 12, borderRadius: 10, flex: 1, alignItems: "center", marginHorizontal: 5 },
-});
