@@ -18,10 +18,10 @@ const DashboardLayout = () => {
           tabBarActiveTintColor: COLORS.active,
           tabBarInactiveTintColor: COLORS.inactive,
           headerShown: false,
-          tabBarShowLabel: false,
+          tabBarShowLabel: true,
           tabBarStyle: {
             backgroundColor: COLORS.background,
-            height: 70,
+            height: 55,
             paddingBottom: 16,
             paddingTop: 8,
             borderTopWidth: 1,
@@ -53,14 +53,7 @@ const DashboardLayout = () => {
             ),
           }}
         />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="person" color={color} size={size} />
-            ),
-          }}
-        />
+        
         <Tabs.Screen
           name="feeding_shedule"
           options={{
@@ -70,10 +63,26 @@ const DashboardLayout = () => {
           }}
         />
         <Tabs.Screen
+          name="profile"
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <MaterialIcons name="home" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="vet"
           options={{
             tabBarIcon: ({ color, size }) => (
               <MaterialIcons name="emergency" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="setting"
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <MaterialIcons name="settings" color={color} size={size} />
             ),
           }}
         />
