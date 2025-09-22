@@ -1,108 +1,63 @@
 import React, { useState, useEffect } from "react";
 import { 
-  View, Text, ScrollView, TouchableOpacity, Alert, RefreshControl
+  View, Text, ScrollView, TouchableOpacity, Alert, RefreshControl, TextInput, Modal, Dimensions, Image
 } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import * as Notifications from 'expo-notifications';
 import { auth } from "../../../firebase";
 import { getPetsByUser } from "../../../services/petService";
 import { Pet } from "../../../types/pet";
-import { 
-  getFeedingSchedulesByPet, 
-  requestNotificationPermissions,
-  getAllScheduledNotifications
-} from "../../../services/feedingService";
+import { getFeedingSchedulesByPet } from "../../../services/feedingService";
+
+const { width, height } = Dimensions.get('window');
 
 const DietIndex = () => {
   const [pets, setPets] = useState<Pet[]>([]);
+  const [filteredPets, setFilteredPets] = useState<Pet[]>([]);
   const [feedingCounts, setFeedingCounts] = useState<{[key: string]: number}>({});
+  const [upcomingFeedings, setUpcomingFeedings] = useState<{[key: string]: number}>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearchModal, setShowSearchModal] = useState(false);
+
   const router = useRouter();
   const userId = auth.currentUser?.uid || "";
 
-  // Pet card colors array
-  const petCardColors = [
-    { bg: '#FF8A65', accent: '#FF5722' }, // Coral Orange
-    { bg: '#81C784', accent: '#4CAF50' }, // Green
-    { bg: '#64B5F6', accent: '#2196F3' }, // Blue
-    { bg: '#BA68C8', accent: '#9C27B0' }, // Purple
-    { bg: '#FFB74D', accent: '#FF9800' }, // Orange
-    { bg: '#4DB6AC', accent: '#009688' }, // Teal
-    { bg: '#F06292', accent: '#E91E63' }, // Pink
-    { bg: '#9575CD', accent: '#673AB7' }, // Deep Purple
-  ];
-
-  // Setup notifications when component mounts
-  useEffect(() => {
-    setupNotifications();
-  }, []);
-
-  const setupNotifications = async () => {
-    try {
-      // Request permissions
-      const hasPermission = await requestNotificationPermissions();
-      setNotificationPermission(hasPermission);
-
-      // Set up notification response handler
-      const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-        const data = response.notification.request.content.data;
-        if (data.type === 'feeding_reminder' && data.petId) {
-          // Navigate to the specific pet's feeding schedule
-          router.push(`/dashboard/feeding_shedule/${data.petId}` as any);
-        }
-      });
-
-      // Set up foreground notification handler
-      const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {
-        console.log('Notification received in foreground:', notification);
-      });
-
-      // Cleanup subscriptions
-      return () => {
-        subscription.remove();
-        foregroundSubscription.remove();
-      };
-    } catch (error) {
-      console.error('Error setting up notifications:', error);
-    }
-  };
-
-  // Load pets and their feeding schedule counts
   const loadPets = async (showLoader = false) => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-    
+    if (!userId) return;
+
     try {
       if (showLoader) setLoading(true);
       setRefreshing(true);
-      
-      console.log('Loading pets for user:', userId);
-      const data = await getPetsByUser(userId);
-      console.log('Loaded pets:', data);
-      setPets(data);
 
-      // Get feeding schedule counts for each pet
+      const data = await getPetsByUser(userId);
+      setPets(data);
+      setFilteredPets(data);
+
       const counts: {[key: string]: number} = {};
+      const upcoming: {[key: string]: number} = {};
+
       for (const pet of data) {
         if (pet.id) {
-          try {
-            const schedules = await getFeedingSchedulesByPet(pet.id);
-            counts[pet.id] = schedules.length;
-            console.log(`Pet ${pet.name} (${pet.id}) has ${schedules.length} schedules`);
-          } catch (error) {
-            console.error(`Error loading schedules for pet ${pet.id}:`, error);
-            counts[pet.id] = 0;
-          }
+          const schedules = await getFeedingSchedulesByPet(pet.id);
+          counts[pet.id] = schedules.length;
+
+          const today = new Date();
+          const nextWeek = new Date(today.getTime() + 7*24*60*60*1000);
+          const upcomingCount = schedules.filter(s => {
+            if (!s.date) return false;
+            const feedingDate = new Date(s.date);
+            return feedingDate >= today && feedingDate <= nextWeek;
+          }).length;
+          upcoming[pet.id] = upcomingCount;
         }
       }
+
       setFeedingCounts(counts);
+      setUpcomingFeedings(upcoming);
     } catch (error) {
-      console.error('Error loading pets:', error);
+      console.error(error);
       Alert.alert("Error", "Failed to load pets");
     } finally {
       setLoading(false);
@@ -111,519 +66,118 @@ const DietIndex = () => {
   };
 
   useEffect(() => {
-    loadPets(true);
-  }, [userId]);
+    if (!searchQuery.trim()) setFilteredPets(pets);
+    else setFilteredPets(pets.filter(p =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.breed.toLowerCase().includes(searchQuery.toLowerCase())
+    ));
+  }, [searchQuery, pets]);
+
+  useEffect(() => { loadPets(true); }, [userId]);
 
   const handlePetSelect = (pet: Pet) => {
-    if (pet.id) {
-      console.log('Navigating to pet diet detail with ID:', pet.id);
-      console.log('Pet object:', pet);
-      
-      router.push(`/dashboard/feeding_shedule/${pet.id!}` as any);
-    } else {
-      console.error('Pet ID is missing:', pet);
-      Alert.alert("Error", "Pet ID is missing. Please try refreshing the list.");
-    }
+    if (pet.id) router.push(`/dashboard/feeding_shedule/${pet.id}`);
+    else Alert.alert("Error", "Pet ID is missing");
   };
 
-  const showNotificationSettings = () => {
-    Alert.alert(
-      "Notification Settings",
-      `Notifications are ${notificationPermission ? 'enabled' : 'disabled'}.\n\n${
-        notificationPermission 
-          ? 'You will receive reminders for feeding times.' 
-          : 'Enable notifications to get feeding reminders.'
-      }`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: notificationPermission ? "View Scheduled" : "Enable",
-          onPress: notificationPermission ? showScheduledNotifications : requestNotificationPermissions
-        }
-      ]
-    );
-  };
+  const totalPets = pets.length;
+  const totalFeedings = Object.values(feedingCounts).reduce((sum, c) => sum + c, 0);
+  const totalUpcoming = Object.values(upcomingFeedings).reduce((sum, c) => sum + c, 0);
 
-  const showScheduledNotifications = async () => {
-    try {
-      const notifications = await getAllScheduledNotifications();
-      const feedingNotifications = notifications.filter(n => 
-        n.content.data?.type === 'feeding_reminder'
-      );
-      
-      Alert.alert(
-        "Scheduled Reminders",
-        `You have ${feedingNotifications.length} feeding reminders scheduled.\n\n${
-          feedingNotifications.slice(0, 3).map(n => 
-            `• ${n.content.title} - ${new Date(n.trigger.value).toLocaleString()}`
-          ).join('\n')
-        }${feedingNotifications.length > 3 ? '\n...and more' : ''}`,
-        [{ text: "OK" }]
-      );
-    } catch (error) {
-      console.error('Error getting scheduled notifications:', error);
-      Alert.alert("Error", "Failed to load scheduled notifications");
-    }
-  };
-
-  if (loading && pets.length === 0) {
-    return (
-      <View style={{ 
-        flex: 1, 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        backgroundColor: '#F5F7FA'
-      }}>
-        <View style={{
-          backgroundColor: '#4ECDC4',
-          padding: 20,
-          borderRadius: 50,
-          marginBottom: 20,
-        }}>
-          <MaterialIcons name="restaurant" size={48} color="white" />
+  const renderSearchModal = () => (
+    <Modal visible={showSearchModal} transparent animationType="slide" onRequestClose={() => setShowSearchModal(false)}>
+      <View style={{ flex:1, backgroundColor:'rgba(0,0,0,0.5)', justifyContent:'center', alignItems:'center' }}>
+        <View style={{ width:'90%', maxHeight:'80%', backgroundColor:'white', borderRadius:15, overflow:'hidden' }}>
+          <View style={{ flexDirection:'row', alignItems:'center', padding:20, borderBottomWidth:1, borderBottomColor:'#f0f0f0' }}>
+            <MaterialIcons name="search" size={24} color="#A8BBA3"/>
+            <TextInput style={{ flex:1, fontSize:16, marginLeft:10, color:'#000' }} placeholder="Search pets..." value={searchQuery} onChangeText={setSearchQuery} autoFocus/>
+            <TouchableOpacity onPress={()=>setShowSearchModal(false)}>
+              <MaterialIcons name="close" size={24} color="#000"/>
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{ maxHeight: height*0.6 }}>
+            {filteredPets.map(pet=>(
+              <TouchableOpacity key={pet.id} onPress={()=>{handlePetSelect(pet); setShowSearchModal(false);}}
+                style={{ flexDirection:'row', alignItems:'center', padding:15, borderBottomWidth:1, borderBottomColor:'#f0f0f0' }}>
+                <MaterialIcons name="pets" size={20} color="#A8BBA3"/>
+                <View style={{ flex:1, marginLeft:12 }}>
+                  <Text style={{ fontSize:16, fontWeight:'bold', color:'#000' }}>{pet.name}</Text>
+                  <Text style={{ fontSize:12, color:'#000' }}>{pet.breed} • {pet.age} yrs</Text>
+                  <Text style={{ fontSize:11, color:'#A8BBA3' }}>{feedingCounts[pet.id!]||0} schedules • {upcomingFeedings[pet.id!]||0} upcoming</Text>
+                </View>
+                <MaterialIcons name="arrow-forward-ios" size={16} color="#000"/>
+              </TouchableOpacity>
+            ))}
+            {filteredPets.length===0 && searchQuery && (
+              <View style={{ padding:40, alignItems:'center' }}>
+                <MaterialIcons name="search-off" size={48} color="#A8BBA3"/>
+                <Text style={{ color:'#000', marginTop:10 }}>No pets found</Text>
+              </View>
+            )}
+          </ScrollView>
         </View>
-        <Text style={{ 
-          fontSize: 18, 
-          fontWeight: '600', 
-          color: '#34495E',
-          marginBottom: 8
-        }}>
-          Loading your pets...
-        </Text>
-        <Text style={{ 
-          fontSize: 14, 
-          color: '#7F8C8D',
-          textAlign: 'center'
-        }}>
-          Please wait while we fetch your pet data
-        </Text>
       </View>
-    );
-  }
+    </Modal>
+  );
+
+  if(loading && pets.length===0) return (
+    <View style={{ flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'#fff' }}>
+      <MaterialIcons name="restaurant" size={48} color="#A8BBA3"/>
+      <Text style={{ marginTop:10, color:'#A8BBA3' }}>Loading feeding data...</Text>
+    </View>
+  );
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F5F7FA' }}>
-      {/* Gradient Header */}
-      <View style={{
-        backgroundColor: '#4ECDC4',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        paddingTop: 50,
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
-        shadowColor: '#4ECDC4',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 15,
-        elevation: 10,
-      }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ 
-              fontSize: 28, 
-              fontWeight: '800', 
-              color: 'white',
-              marginBottom: 4
-            }}>
-              Pet Care Tracker 🐾
-            </Text>
-            <Text style={{ 
-              fontSize: 16, 
-              color: 'rgba(255,255,255,0.9)', 
-              fontWeight: '500'
-            }}>
-              Keep your furry friends healthy & happy
-            </Text>
-          </View>
-          
-          <TouchableOpacity
-            onPress={showNotificationSettings}
-            style={{
-              padding: 12,
-              backgroundColor: notificationPermission 
-                ? 'rgba(255,255,255,0.2)' 
-                : 'rgba(255,107,107,0.3)',
-              borderRadius: 15,
-              borderWidth: 2,
-              borderColor: 'rgba(255,255,255,0.3)',
-            }}
-          >
-            <MaterialIcons 
-              name={notificationPermission ? "notifications-active" : "notifications-off"} 
-              size={24} 
-              color="white" 
-            />
-          </TouchableOpacity>
+    <View style={{ flex:1, backgroundColor:'#fff' }}>
+      {/* Header with GIF and search */}
+      <View style={{ backgroundColor:'#A8BBA3', paddingTop:50, paddingBottom:20, paddingHorizontal:20, borderBottomLeftRadius:20, borderBottomRightRadius:20, flexDirection:'row', alignItems:'center', justifyContent:'space-between' }}>
+        <View style={{ alignItems:'center' }}>
+          <Image source={require('../../../assets/images/petgif.gif')} style={{ width:80, height:80 }}/>
+          <Text style={{ fontSize:20, fontWeight:'bold', color:'#000' }}>Feeding Tracker 🍽️</Text>
+          <Text style={{ fontSize:14, color:'#000' }}>Track feeding schedules & reminders</Text>
         </View>
+        <TouchableOpacity onPress={()=>setShowSearchModal(true)} style={{ padding:10 }}>
+          <MaterialIcons name="search" size={28} color="#000"/>
+        </TouchableOpacity>
       </View>
 
-      {/* Scrollable Content */}
-      <ScrollView 
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: 20 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => loadPets()}
-            colors={["#4ECDC4"]}
-            tintColor="#4ECDC4"
-          />
-        }
-      >
-        {/* Notification Status Banner */}
-        {!notificationPermission && (
-          <View style={{
-            margin: 20,
-            backgroundColor: '#FFF3E0',
-            padding: 18,
-            borderRadius: 16,
-            borderLeftWidth: 4,
-            borderLeftColor: '#FF9800',
-            shadowColor: '#FF9800',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-            elevation: 3,
-          }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialIcons name="notifications_none" size={22} color="#F57C00" />
-              <Text style={{ 
-                color: '#E65100', 
-                fontWeight: '700', 
-                marginLeft: 10,
-                fontSize: 16
-              }}>
-                Enable Notifications
-              </Text>
+      <ScrollView contentContainerStyle={{ paddingTop:20, paddingBottom:40 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadPets} colors={["#A8BBA3"]} />}>
+        {/* Quick Stats */}
+        <View style={{ margin:20 }}>
+          <Text style={{ fontSize:16, fontWeight:'bold', marginBottom:10, color:'#A8BBA3' }}>Quick Overview:</Text>
+          <View style={{ backgroundColor:'#fff', padding:20, borderRadius:12, flexDirection:'row', justifyContent:'space-around', elevation:3 }}>
+            <View style={{ alignItems:'center' }}>
+              <Text style={{ fontSize:24, fontWeight:'bold', color:'#A8BBA3' }}>{totalPets}</Text>
+              <Text style={{ fontSize:12, color:'#000' }}>Total Pets</Text>
             </View>
-            <Text style={{ 
-              color: '#F57C00', 
-              fontSize: 14, 
-              marginTop: 6,
-              lineHeight: 20
-            }}>
-              Get feeding reminders to keep your pets on schedule! Tap the bell icon above.
-            </Text>
+            <View style={{ alignItems:'center' }}>
+              <Text style={{ fontSize:24, fontWeight:'bold', color:'#000' }}>{totalFeedings}</Text>
+              <Text style={{ fontSize:12, color:'#000' }}>Feeding Schedules</Text>
+            </View>
+            <View style={{ alignItems:'center' }}>
+              <Text style={{ fontSize:24, fontWeight:'bold', color:'#000' }}>{totalUpcoming}</Text>
+              <Text style={{ fontSize:12, color:'#000' }}>Upcoming Feedings</Text>
+            </View>
           </View>
-        )}
-
-        {/* Horizontal Pet Cards */}
-        <View style={{ marginTop: notificationPermission ? 20 : 0 }}>
-          <Text style={{ 
-            fontSize: 22, 
-            fontWeight: '700', 
-            marginBottom: 16, 
-            color: '#2C3E50',
-            marginLeft: 20
-          }}>
-            Your Pets ({pets.length}) 🏠
-          </Text>
-
-          {pets.length === 0 ? (
-            <View style={{
-              backgroundColor: 'white',
-              margin: 20,
-              padding: 40,
-              borderRadius: 20,
-              alignItems: 'center',
-              shadowColor: '#34495E',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 12,
-              elevation: 6,
-            }}>
-              <View style={{
-                backgroundColor: '#E8F5E8',
-                padding: 20,
-                borderRadius: 50,
-                marginBottom: 16,
-              }}>
-                <MaterialIcons name="pets" size={48} color="#4CAF50" />
-              </View>
-              <Text style={{ 
-                fontSize: 20, 
-                fontWeight: '700', 
-                color: '#34495E', 
-                marginBottom: 8 
-              }}>
-                No pets added yet
-              </Text>
-              <Text style={{ 
-                fontSize: 15, 
-                color: '#7F8C8D', 
-                textAlign: 'center',
-                lineHeight: 22 
-              }}>
-                Start by adding your furry friends to track their feeding schedules
-              </Text>
-            </View>
-          ) : (
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 20 }}
-            >
-              {pets.map((pet, index) => {
-                const colors = petCardColors[index % petCardColors.length];
-                return (
-                  <TouchableOpacity
-                    key={pet.id}
-                    onPress={() => handlePetSelect(pet)}
-                    style={{
-                      backgroundColor: colors.bg,
-                      width: 160,
-                      padding: 16,
-                      borderRadius: 20,
-                      marginRight: 16,
-                      shadowColor: colors.accent,
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.2,
-                      shadowRadius: 8,
-                      elevation: 6,
-                      position: 'relative',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {/* Pet Icon Background */}
-                    <View style={{
-                      position: 'absolute',
-                      top: -10,
-                      right: -10,
-                      backgroundColor: 'rgba(255,255,255,0.2)',
-                      borderRadius: 50,
-                      padding: 20,
-                    }}>
-                      <MaterialIcons name="pets" size={40} color="rgba(255,255,255,0.3)" />
-                    </View>
-
-                    {/* Pet Info */}
-                    <View style={{ flex: 1, justifyContent: 'space-between', minHeight: 120 }}>
-                      <View>
-                        <Text style={{ 
-                          fontSize: 18, 
-                          fontWeight: '800',
-                          color: 'white',
-                          marginBottom: 4,
-                          textShadowColor: 'rgba(0,0,0,0.3)',
-                          textShadowOffset: { width: 0, height: 1 },
-                          textShadowRadius: 2,
-                        }}>
-                          {pet.name}
-                        </Text>
-                        
-                        <Text style={{ 
-                          color: 'rgba(255,255,255,0.9)', 
-                          fontSize: 13,
-                          fontWeight: '600',
-                          marginBottom: 2
-                        }}>
-                          {pet.breed}
-                        </Text>
-                        
-                        <Text style={{ 
-                          color: 'rgba(255,255,255,0.8)', 
-                          fontSize: 12,
-                          fontWeight: '500'
-                        }}>
-                          {pet.age} years • {pet.weight}kg
-                        </Text>
-                      </View>
-
-                      {/* Bottom Info */}
-                      <View style={{ marginTop: 12 }}>
-                        <View style={{
-                          backgroundColor: 'rgba(255,255,255,0.2)',
-                          paddingHorizontal: 8,
-                          paddingVertical: 4,
-                          borderRadius: 12,
-                          alignSelf: 'flex-start',
-                          marginBottom: 6,
-                        }}>
-                          <Text style={{ 
-                            color: 'white', 
-                            fontSize: 11, 
-                            fontWeight: '700'
-                          }}>
-                            🍽️ {feedingCounts[pet.id!] || 0} schedules
-                          </Text>
-                        </View>
-                        
-                        {notificationPermission && feedingCounts[pet.id!] > 0 && (
-                          <View style={{
-                            backgroundColor: 'rgba(76,175,80,0.9)',
-                            paddingHorizontal: 8,
-                            paddingVertical: 3,
-                            borderRadius: 10,
-                            alignSelf: 'flex-start',
-                          }}>
-                            <Text style={{ 
-                              color: 'white', 
-                              fontSize: 10, 
-                              fontWeight: '600'
-                            }}>
-                              🔔 Active
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          )}
         </View>
 
-        {/* Quick Stats Dashboard */}
-        {pets.length > 0 && (
-          <View style={{ margin: 20, marginTop: 30 }}>
-            <Text style={{ 
-              fontSize: 20, 
-              fontWeight: '700', 
-              marginBottom: 16, 
-              color: '#2C3E50'
-            }}>
-              Dashboard Overview 📊
-            </Text>
-            
-            <View style={{
-              backgroundColor: 'white',
-              padding: 20,
-              borderRadius: 20,
-              shadowColor: '#34495E',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 12,
-              elevation: 6,
-            }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                {/* Total Pets */}
-                <View style={{ alignItems: 'center', flex: 1 }}>
-                  <View style={{
-                    backgroundColor: '#E8F5E8',
-                    padding: 12,
-                    borderRadius: 50,
-                    marginBottom: 8,
-                  }}>
-                    <MaterialIcons name="pets" size={20} color="#4CAF50" />
-                  </View>
-                  <Text style={{ 
-                    fontSize: 24, 
-                    fontWeight: 'bold', 
-                    color: '#4CAF50',
-                    marginBottom: 2
-                  }}>
-                    {pets.length}
-                  </Text>
-                  <Text style={{ 
-                    color: '#7F8C8D', 
-                    fontSize: 12, 
-                    fontWeight: '600',
-                    textAlign: 'center'
-                  }}>
-                    Total Pets
-                  </Text>
-                </View>
-                
-                {/* Total Schedules */}
-                <View style={{ alignItems: 'center', flex: 1 }}>
-                  <View style={{
-                    backgroundColor: '#E3F2FD',
-                    padding: 12,
-                    borderRadius: 50,
-                    marginBottom: 8,
-                  }}>
-                    <MaterialIcons name="restaurant" size={20} color="#2196F3" />
-                  </View>
-                  <Text style={{ 
-                    fontSize: 24, 
-                    fontWeight: 'bold', 
-                    color: '#2196F3',
-                    marginBottom: 2
-                  }}>
-                    {Object.values(feedingCounts).reduce((sum, count) => sum + count, 0)}
-                  </Text>
-                  <Text style={{ 
-                    color: '#7F8C8D', 
-                    fontSize: 12, 
-                    fontWeight: '600',
-                    textAlign: 'center'
-                  }}>
-                    Schedules
-                  </Text>
-                </View>
-                
-                {/* Active Pets */}
-                <View style={{ alignItems: 'center', flex: 1 }}>
-                  <View style={{
-                    backgroundColor: '#FFF3E0',
-                    padding: 12,
-                    borderRadius: 50,
-                    marginBottom: 8,
-                  }}>
-                    <MaterialIcons name="schedule" size={20} color="#FF9800" />
-                  </View>
-                  <Text style={{ 
-                    fontSize: 24, 
-                    fontWeight: 'bold', 
-                    color: '#FF9800',
-                    marginBottom: 2
-                  }}>
-                    {Object.values(feedingCounts).filter(count => count > 0).length}
-                  </Text>
-                  <Text style={{ 
-                    color: '#7F8C8D', 
-                    fontSize: 12, 
-                    fontWeight: '600',
-                    textAlign: 'center'
-                  }}>
-                    Active Pets
-                  </Text>
-                </View>
-
-                {/* Notifications */}
-                <View style={{ alignItems: 'center', flex: 1 }}>
-                  <View style={{
-                    backgroundColor: notificationPermission ? '#E8F5E8' : '#FFEBEE',
-                    padding: 12,
-                    borderRadius: 50,
-                    marginBottom: 8,
-                  }}>
-                    <MaterialIcons 
-                      name={notificationPermission ? "notifications_active" : "notifications_off"} 
-                      size={20} 
-                      color={notificationPermission ? "#4CAF50" : "#F44336"}
-                    />
-                  </View>
-                  <Text style={{ 
-                    fontSize: 14, 
-                    fontWeight: 'bold',
-                    color: notificationPermission ? '#4CAF50' : '#F44336',
-                    marginBottom: 2
-                  }}>
-                    {notificationPermission ? 'ON' : 'OFF'}
-                  </Text>
-                  <Text style={{ 
-                    color: '#7F8C8D', 
-                    fontSize: 12,
-                    fontWeight: '600',
-                    textAlign: 'center'
-                  }}>
-                    Alerts
-                  </Text>
-                </View>
+        {/* Pet List */}
+        <View style={{ marginHorizontal:20 }}>
+          {filteredPets.map(pet=>(
+            <TouchableOpacity key={pet.id} onPress={()=>handlePetSelect(pet)}
+              style={{ backgroundColor:'#fff', padding:15, borderRadius:12, marginBottom:12, flexDirection:'row', justifyContent:'space-between', alignItems:'center', elevation:2 }}>
+              <View>
+                <Text style={{ fontSize:18, fontWeight:'bold', color:'#000' }}>{pet.name}</Text>
+                <Text style={{ fontSize:14, color:'#000' }}>{pet.breed} • {pet.age} yrs</Text>
+                <Text style={{ fontSize:12, color:'#A8BBA3' }}>{feedingCounts[pet.id!]||0} schedules • {upcomingFeedings[pet.id!]||0} upcoming</Text>
               </View>
-            </View>
-          </View>
-        )}
-
-        {/* Bottom Spacing */}
-        <View style={{ height: 20 }} />
+              <MaterialIcons name="arrow-forward-ios" size={20} color="#000"/>
+            </TouchableOpacity>
+          ))}
+        </View>
       </ScrollView>
+
+      {renderSearchModal()}
     </View>
   );
 };
