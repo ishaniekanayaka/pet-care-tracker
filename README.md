@@ -11,9 +11,9 @@ A comprehensive mobile application built with **React Native + Expo** for tracki
 
 ## 📱 Screenshots
 
-| Dashboard | Pet Profile | Health Records | Reminders |
+| Dashboard | Login | Health Records | Feeding Shedule |
 |-----------|-------------|----------------|-----------|
-| ![Dashboard](https://via.placeholder.com/200x400?text=Dashboard) | ![Profile](https://via.placeholder.com/200x400?text=Pet+Profile) | ![Records](https://via.placeholder.com/200x400?text=Health+Records) | ![Reminders](https://via.placeholder.com/200x400?text=Reminders) |
+| ![Dashboard](assets/screenshot/home.jpg) | ![login](assets/screenshot/login.jpg) | ![Health Record](assets/screenshot/health.jpg) | ![Feeding shedule](assets/screenshot/feeding.jpg) |
 
 ---
 ## 📺 Demo Video
