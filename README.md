@@ -16,7 +16,13 @@ A comprehensive mobile application built with **React Native + Expo** for tracki
 | ![Dashboard](https://via.placeholder.com/200x400?text=Dashboard) | ![Profile](https://via.placeholder.com/200x400?text=Pet+Profile) | ![Records](https://via.placeholder.com/200x400?text=Health+Records) | ![Reminders](https://via.placeholder.com/200x400?text=Reminders) |
 
 ---
+## 📺 Demo Video
 
+Watch the walkthrough/demo of **Pet Health Tracker App** on YouTube:
+
+[![Watch the demo](https://img.youtube.com/vi/YOUR_VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
+
+---
 ## 🚀 Key Features
 
 ### 📊 Health Record Management
@@ -321,31 +327,8 @@ npm run format
 - **Expo Team** for the amazing development platform
 - **Firebase** for robust backend services
 
----
-
-## 📊 Project Status
-
-![GitHub last commit](https://img.shields.io/github/last-commit/your-username/pet-health-tracker)
-![GitHub issues](https://img.shields.io/github/issues/your-username/pet-health-tracker)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/your-username/pet-health-tracker)
-![GitHub license](https://img.shields.io/github/license/your-username/pet-health-tracker)
-
-**Current Version:** `v1.0.0`  
-**Status:** `Active Development`  
-**Last Updated:** `December 2024`
 
 ---
 
----
-
-## 💬 Support & Community
-
-- **Documentation:** [Wiki](https://github.com/your-username/pet-health-tracker/wiki)
-- **Bug Reports:** [GitHub Issues](https://github.com/your-username/pet-health-tracker/issues)
-- **Feature Requests:** [GitHub Discussions](https://github.com/your-username/pet-health-tracker/discussions)
-- **Community Chat:** [Discord Server](https://discord.gg/pet-health-tracker)
-- **Updates:** [Twitter](https://twitter.com/pet_health_app)
-
----
 
 **Made with ❤️ for pet owners everywhere** 🐕🐱🐰
