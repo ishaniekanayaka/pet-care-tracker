@@ -14,7 +14,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Pet } from "../../../types/pet";
-import { HealthRecord } from "../../../types/health";
+
+import { HealthRecordType, HealthRecordFormData, HealthRecord } from "../../../types/health";
+
 import {
   addHealthRecord,
   getHealthRecordsByPet,
@@ -25,6 +27,8 @@ import {
   registerHealthNotifications,
   scheduleHealthReminder,
 } from "../../../services/healthReminderService";
+
+
 
 const PetHealthDetail = () => {
   const { id } = useLocalSearchParams();
@@ -39,39 +43,31 @@ const PetHealthDetail = () => {
   const [addingRecord, setAddingRecord] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
-  const [newRecord, setNewRecord] = useState({
-    type: "vaccination" as const,
-    title: "",
-    date: today,
-    nextDue: "",
-    notes: "",
-  });
+
+const [newRecord, setNewRecord] = useState<HealthRecordFormData>({
+  type: "vaccination", // default
+  title: "",
+  date: today,
+  nextDue: "",
+  notes: "",
+});
+
+
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showNextDuePicker, setShowNextDuePicker] = useState(false);
 
-  const recordTypes = [
-    {
-      value: "vaccination",
-      label: "Vaccination",
-      icon: "vaccines",
-      color: "#896C6C",
-    },
-    {
-      value: "checkup",
-      label: "Checkup",
-      icon: "medical-services",
-      color: "#5D688A",
-    },
-    {
-      value: "medication",
-      label: "Medication",
-      icon: "medication",
-      color: "#A8BBA3",
-    },
-    { value: "treatment", label: "Treatment", icon: "healing", color: "#FF6B6B" },
-  ];
-
+  const recordTypes: {
+  value: HealthRecordType;
+  label: string;
+  icon: string;
+  color: string;
+}[] = [
+  { value: "vaccination", label: "Vaccination", icon: "vaccines", color: "#896C6C" },
+  { value: "checkup", label: "Checkup", icon: "medical-services", color: "#5D688A" },
+  { value: "medication", label: "Medication", icon: "medication", color: "#A8BBA3" },
+  { value: "treatment", label: "Treatment", icon: "healing", color: "#FF6B6B" },
+];
   // Optimized pet loading function
   const loadPet = useCallback(async () => {
     if (!id || typeof id !== "string") {
@@ -199,7 +195,7 @@ const PetHealthDetail = () => {
         title: newRecord.title.trim(),
         date: newRecord.date,
         nextDue: newRecord.nextDue,
-        notes: newRecord.notes.trim()
+        notes: newRecord.notes?.trim() || "",
       };
 
       // Optimistically add to UI immediately
@@ -556,11 +552,13 @@ const PetHealthDetail = () => {
                     {record.nextDue && (
                       <TouchableOpacity
                         onPress={() => {
-                          scheduleHealthReminder(pet.name, record, 3);
-                          Alert.alert(
-                            "Reminder Set",
-                            `Reminder scheduled 3 days before ${new Date(record.nextDue).toLocaleDateString()}`
-                          );
+                          if (record.nextDue) { // <-- extra safeguard
+                            scheduleHealthReminder(pet.name, record, 3);
+                            Alert.alert(
+                              "Reminder Set",
+                              `Reminder scheduled 3 days before ${new Date(record.nextDue).toLocaleDateString()}`
+                            );
+                          }
                         }}
                         style={{ 
                           marginRight: 10,
@@ -574,6 +572,7 @@ const PetHealthDetail = () => {
                         />
                       </TouchableOpacity>
                     )}
+
 
                     {/* Delete button */}
                     <TouchableOpacity 
@@ -645,7 +644,7 @@ const PetHealthDetail = () => {
                 {recordTypes.map((rt) => (
                   <TouchableOpacity
                     key={rt.value}
-                    onPress={() => setNewRecord({ ...newRecord, type: rt.value })}
+                    onPress={() => setNewRecord({ ...newRecord, type: rt.value as HealthRecordType })}
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',

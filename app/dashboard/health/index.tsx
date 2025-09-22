@@ -558,7 +558,7 @@ const HealthIndex = () => {
               {!searchQuery && (
                 <TouchableOpacity 
                   style={styles.addPetButton}
-                  onPress={() => router.push('/dashboard/pets')}
+                  onPress={() => router.push('/dashboard/profile')}
                 >
                   <MaterialIcons name="add" size={20} color="white" />
                   <Text style={styles.addPetText}>Add Pet</Text>
