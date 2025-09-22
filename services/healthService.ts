@@ -14,21 +14,43 @@ import {
 import { HealthRecord } from "../types/health";
 import { Pet } from "@/types/pet";
 
+import { scheduleHealthReminder } from "./healthReminderService";
 const healthCollection = collection(db, "healthRecords");
 
 // Add a new health record
+// export const addHealthRecord = async (record: HealthRecord) => {
+//   try {
+//     const docRef = await addDoc(healthCollection, {
+//       ...record,
+//       createdAt: Timestamp.now(),
+//     });
+//     return { success: true, id: docRef.id };
+//   } catch (error) {
+//     console.error("Error adding health record:", error);
+//     return { success: false, error };
+//   }
+// };
+
 export const addHealthRecord = async (record: HealthRecord) => {
   try {
     const docRef = await addDoc(healthCollection, {
       ...record,
       createdAt: Timestamp.now(),
     });
+
+    // 📌 Schedule reminder
+    const pet = await getPetById(record.petId);
+    if (pet && record.nextDue) {
+      await scheduleHealthReminder(pet.name, { ...record, id: docRef.id });
+    }
+
     return { success: true, id: docRef.id };
   } catch (error) {
     console.error("Error adding health record:", error);
     return { success: false, error };
   }
 };
+
 
 // Get records by Pet (with id included)
 export const getHealthRecordsByPet = async (
