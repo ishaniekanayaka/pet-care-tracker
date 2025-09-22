@@ -22,14 +22,11 @@ A comprehensive mobile application built with **React Native + Expo** for tracki
 ### 📊 Health Record Management
 - **Add, update, and delete** comprehensive health records for your pets
 - Support for multiple record types: **vaccination, checkup, medication, treatment**
-- **Photo attachments** for medical documents and receipts
 - **Search and filter** records by date, type, or veterinarian
 
 ### ⏰ Smart Reminders
 - **Automated reminders** for upcoming vaccinations and checkups
 - **Custom reminder intervals** (daily, weekly, monthly, yearly)
-- **Push notifications** to never miss important health tasks
-- **Snooze functionality** for busy schedules
 
 ### 🎨 Modern User Interface
 - **Gradient-based design** with intuitive navigation
@@ -39,9 +36,6 @@ A comprehensive mobile application built with **React Native + Expo** for tracki
 
 ### 🔄 Cross-Platform Compatibility
 - **Android** (native and web)
-- **iOS** (native and web)
-- **Web browser** support via Expo
-- **Real-time sync** across all devices
 
 ### 🐕 Multi-Pet Management
 - Manage health records for **multiple pets**
@@ -90,81 +84,6 @@ npm install
 
 # Using yarn
 yarn install
-```
-
-### 3. Firebase Configuration
-
-#### Step 3.1: Create Firebase Project
-1. Visit the [Firebase Console](https://console.firebase.google.com/)
-2. Click **"Create a project"** and follow the setup wizard
-3. Enable **Firestore Database** (start in test mode for development)
-4. Enable **Authentication** and set up **Email/Password** provider
-5. Add your app to the Firebase project (Android/iOS/Web)
-
-#### Step 3.2: Configure Firebase in Your App
-Create a `firebase.ts` file in the root directory:
-
-```typescript
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
-
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  measurementId: "YOUR_MEASUREMENT_ID" // Optional for analytics
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-// Initialize Firebase services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
-
-export default app;
-```
-
-#### Step 3.3: Update Firestore Security Rules
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Users can only access their own data
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Pet records are user-specific
-    match /pets/{petId} {
-      allow read, write: if request.auth != null && 
-        request.auth.uid == resource.data.ownerId;
-    }
-    
-    match /healthRecords/{recordId} {
-      allow read, write: if request.auth != null && 
-        request.auth.uid == resource.data.ownerId;
-    }
-  }
-}
-```
-
-### 4. Environment Variables
-Create a `.env` file in the root directory:
-
-```env
-EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key_here
-EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
 ```
 
 ---
@@ -229,141 +148,8 @@ eas build --platform all
 
 ---
 
-## 📁 Project Structure
 
-```
-pet-health-tracker/
-├── 📱 app/                     # Expo Router pages (main screens)
-│   ├── (auth)/                 # Authentication screens
-│   │   ├── login.tsx
-│   │   ├── register.tsx
-│   │   └── forgot-password.tsx
-│   ├── (tabs)/                 # Tab navigation screens
-│   │   ├── index.tsx           # Dashboard/Home
-│   │   ├── pets/               # Pet management
-│   │   ├── health/             # Health records
-│   │   ├── reminders/          # Reminder management
-│   │   └── profile/            # User profile
-│   └── _layout.tsx             # Root layout
-├── 🎨 components/              # Reusable UI components
-│   ├── ui/                     # Basic UI components
-│   │   ├── Button.tsx
-│   │   ├── Input.tsx
-│   │   ├── Card.tsx
-│   │   └── Modal.tsx
-│   ├── health/                 # Health-related components
-│   │   ├── HealthRecordCard.tsx
-│   │   ├── VaccinationForm.tsx
-│   │   └── MedicationTracker.tsx
-│   └── common/                 # Common components
-│       ├── Header.tsx
-│       ├── LoadingSpinner.tsx
-│       └── EmptyState.tsx
-├── 🔧 hooks/                   # Custom React hooks
-│   ├── useAuth.ts
-│   ├── useHealthRecords.ts
-│   ├── useReminders.ts
-│   └── useFirestore.ts
-├── 📊 types/                   # TypeScript type definitions
-│   ├── auth.ts
-│   ├── pets.ts
-│   ├── health.ts
-│   └── common.ts
-├── 🔥 services/               # API and service functions
-│   ├── auth.ts
-│   ├── pets.ts
-│   ├── health.ts
-│   └── notifications.ts
-├── 🎯 utils/                  # Utility functions
-│   ├── dateUtils.ts
-│   ├── validationUtils.ts
-│   └── formatUtils.ts
-├── 📦 assets/                 # Images, fonts, icons
-│   ├── images/
-│   ├── icons/
-│   └── fonts/
-├── 🔧 config/                 # Configuration files
-│   ├── firebase.ts
-│   └── constants.ts
-├── 📄 docs/                   # Documentation
-│   ├── API.md
-│   ├── CONTRIBUTING.md
-│   └── DEPLOYMENT.md
-├── 🧪 __tests__/             # Test files
-│   ├── components/
-│   ├── hooks/
-│   └── utils/
-├── 📱 app.json               # Expo configuration
-├── 🔒 firebase.ts            # Firebase configuration
-├── 📦 package.json           # Dependencies and scripts
-├── 🔧 tsconfig.json          # TypeScript configuration
-├── 📝 README.md              # Project documentation
-└── ⚖️ LICENSE                # MIT License
-```
 
----
-
-## 🔌 API Reference
-
-### Authentication
-
-```typescript
-// Sign up new user
-const signUp = async (email: string, password: string) => {
-  return await createUserWithEmailAndPassword(auth, email, password);
-};
-
-// Sign in existing user
-const signIn = async (email: string, password: string) => {
-  return await signInWithEmailAndPassword(auth, email, password);
-};
-
-// Sign out
-const signOut = async () => {
-  return await auth.signOut();
-};
-```
-
-### Pet Management
-
-```typescript
-// Add new pet
-const addPet = async (petData: Pet) => {
-  return await addDoc(collection(db, 'pets'), petData);
-};
-
-// Get user's pets
-const getUserPets = async (userId: string) => {
-  const q = query(collection(db, 'pets'), where('ownerId', '==', userId));
-  return await getDocs(q);
-};
-
-// Update pet information
-const updatePet = async (petId: string, updates: Partial<Pet>) => {
-  return await updateDoc(doc(db, 'pets', petId), updates);
-};
-```
-
-### Health Records
-
-```typescript
-// Add health record
-const addHealthRecord = async (record: HealthRecord) => {
-  return await addDoc(collection(db, 'healthRecords'), record);
-};
-
-// Get pet's health records
-const getPetHealthRecords = async (petId: string) => {
-  const q = query(
-    collection(db, 'healthRecords'), 
-    where('petId', '==', petId),
-    orderBy('date', 'desc')
-  );
-  return await getDocs(q);
-};
-```
-
----
 
 ## 🧪 Testing
 
@@ -380,31 +166,6 @@ npm run test:watch
 npm run test:coverage
 ```
 
-### Test Structure
-
-```typescript
-// Example component test
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
-import { HealthRecordCard } from '../components/health/HealthRecordCard';
-
-describe('HealthRecordCard', () => {
-  it('displays pet health record correctly', () => {
-    const mockRecord = {
-      id: '1',
-      type: 'vaccination',
-      title: 'Annual Rabies Shot',
-      date: new Date(),
-      veterinarian: 'Dr. Smith'
-    };
-
-    const { getByText } = render(<HealthRecordCard record={mockRecord} />);
-    
-    expect(getByText('Annual Rabies Shot')).toBeTruthy();
-    expect(getByText('Dr. Smith')).toBeTruthy();
-  });
-});
-```
 
 ---
 
@@ -518,26 +279,6 @@ service cloud.firestore {
 
 ---
 
-## 🤝 Contributing
-
-We welcome contributions from the community! Please follow these steps:
-
-### Getting Started
-
-1. **Fork** the repository
-2. **Clone** your fork locally
-3. **Create** a feature branch
-4. **Make** your changes
-5. **Test** thoroughly
-6. **Submit** a pull request
-
-### Development Guidelines
-
-- Follow **TypeScript** best practices
-- Write **unit tests** for new features
-- Use **conventional commits** for clear history
-- Ensure **accessibility** compliance
-- Update **documentation** as needed
 
 ### Code Style
 
@@ -565,35 +306,13 @@ npm run format
 
 ---
 
-## 📄 License
-
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-```
-MIT License
-
-Copyright (c) 2024 Pet Health Tracker
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software...
-```
-
----
-
 ## 👨‍💻 Authors & Contributors
 
 **Primary Maintainer**
-- 👤 **Your Name** - *Initial work & development*
-  - 📧 Email: your.email@example.com
-  - 🌐 GitHub: [@your-username](https://github.com/your-username)
-  - 💼 LinkedIn: [Your LinkedIn](https://linkedin.com/in/your-profile)
-
-**Contributors**
-- See the list of [contributors](https://github.com/your-username/pet-health-tracker/contributors) who participated in this project.
-
+- 👤 **Ishani Ekanayaka** - *Initial work & development*
+  - 📧 Email: ishaniekanayaka27@gmail.com
+  - 🌐 GitHub: [@Ishani Ekanayaka](https://github.com/ishaniekanayaka/)
+ 
 ---
 
 ## 🙏 Acknowledgments
@@ -601,8 +320,6 @@ copies of the Software...
 - **React Native Community** for excellent documentation
 - **Expo Team** for the amazing development platform
 - **Firebase** for robust backend services
-- **Open Source Contributors** for inspiration and code examples
-- **Pet owners worldwide** who provided feedback and feature requests
 
 ---
 
@@ -618,32 +335,6 @@ copies of the Software...
 **Last Updated:** `December 2024`
 
 ---
-
-## 🔮 Roadmap & Future Features
-
-### Version 1.1 (Q1 2025)
-- [ ] **Push notifications** for reminders
-- [ ] **Photo attachments** for health records
-- [ ] **Export functionality** (PDF reports)
-- [ ] **Veterinarian contact** integration
-
-### Version 1.2 (Q2 2025)
-- [ ] **Dark mode** UI theme
-- [ ] **Offline mode** with sync capabilities
-- [ ] **Weight tracking** charts and trends
-- [ ] **Medication refill** reminders
-
-### Version 2.0 (Q3 2025)
-- [ ] **Multi-user households** (family sharing)
-- [ ] **Veterinarian portal** integration
-- [ ] **AI-powered health insights**
-- [ ] **Social features** (pet communities)
-
-### Long-term Goals
-- [ ] **Wearable device** integration (pet fitness trackers)
-- [ ] **Telemedicine** consultations
-- [ ] **Insurance claim** assistance
-- [ ] **Emergency contact** system
 
 ---
 
