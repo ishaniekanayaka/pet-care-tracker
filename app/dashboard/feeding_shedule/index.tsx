@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { 
-  View, Text, ScrollView, TouchableOpacity, Alert, RefreshControl, TextInput, Modal, Dimensions, Image
-} from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Alert, RefreshControl, TextInput, Modal, Dimensions, Image } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { auth } from "../../../firebase";
@@ -9,13 +7,13 @@ import { getPetsByUser } from "../../../services/petService";
 import { Pet } from "../../../types/pet";
 import { getFeedingSchedulesByPet } from "../../../services/feedingService";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 const DietIndex = () => {
   const [pets, setPets] = useState<Pet[]>([]);
   const [filteredPets, setFilteredPets] = useState<Pet[]>([]);
-  const [feedingCounts, setFeedingCounts] = useState<{[key: string]: number}>({});
-  const [upcomingFeedings, setUpcomingFeedings] = useState<{[key: string]: number}>({});
+  const [feedingCounts, setFeedingCounts] = useState<{ [key: string]: number }>({});
+  const [upcomingFeedings, setUpcomingFeedings] = useState<{ [key: string]: number }>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -26,7 +24,6 @@ const DietIndex = () => {
 
   const loadPets = async (showLoader = false) => {
     if (!userId) return;
-
     try {
       if (showLoader) setLoading(true);
       setRefreshing(true);
@@ -35,8 +32,8 @@ const DietIndex = () => {
       setPets(data);
       setFilteredPets(data);
 
-      const counts: {[key: string]: number} = {};
-      const upcoming: {[key: string]: number} = {};
+      const counts: { [key: string]: number } = {};
+      const upcoming: { [key: string]: number } = {};
 
       for (const pet of data) {
         if (pet.id) {
@@ -44,13 +41,11 @@ const DietIndex = () => {
           counts[pet.id] = schedules.length;
 
           const today = new Date();
-          const nextWeek = new Date(today.getTime() + 7*24*60*60*1000);
-          const upcomingCount = schedules.filter(s => {
-            if (!s.date) return false;
+          const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+          upcoming[pet.id] = schedules.filter(s => {
             const feedingDate = new Date(s.date);
             return feedingDate >= today && feedingDate <= nextWeek;
           }).length;
-          upcoming[pet.id] = upcomingCount;
         }
       }
 
@@ -65,15 +60,12 @@ const DietIndex = () => {
     }
   };
 
+  useEffect(() => { loadPets(true); }, [userId]);
+
   useEffect(() => {
     if (!searchQuery.trim()) setFilteredPets(pets);
-    else setFilteredPets(pets.filter(p =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.breed.toLowerCase().includes(searchQuery.toLowerCase())
-    ));
+    else setFilteredPets(pets.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.breed.toLowerCase().includes(searchQuery.toLowerCase())));
   }, [searchQuery, pets]);
-
-  useEffect(() => { loadPets(true); }, [userId]);
 
   const handlePetSelect = (pet: Pet) => {
     if (pet.id) router.push(`/dashboard/feeding_shedule/${pet.id}`);
@@ -84,100 +76,66 @@ const DietIndex = () => {
   const totalFeedings = Object.values(feedingCounts).reduce((sum, c) => sum + c, 0);
   const totalUpcoming = Object.values(upcomingFeedings).reduce((sum, c) => sum + c, 0);
 
-  const renderSearchModal = () => (
-    <Modal visible={showSearchModal} transparent animationType="slide" onRequestClose={() => setShowSearchModal(false)}>
-      <View style={{ flex:1, backgroundColor:'rgba(0,0,0,0.5)', justifyContent:'center', alignItems:'center' }}>
-        <View style={{ width:'90%', maxHeight:'80%', backgroundColor:'white', borderRadius:15, overflow:'hidden' }}>
-          <View style={{ flexDirection:'row', alignItems:'center', padding:20, borderBottomWidth:1, borderBottomColor:'#f0f0f0' }}>
-            <MaterialIcons name="search" size={24} color="#A8BBA3"/>
-            <TextInput style={{ flex:1, fontSize:16, marginLeft:10, color:'#000' }} placeholder="Search pets..." value={searchQuery} onChangeText={setSearchQuery} autoFocus/>
-            <TouchableOpacity onPress={()=>setShowSearchModal(false)}>
-              <MaterialIcons name="close" size={24} color="#000"/>
-            </TouchableOpacity>
-          </View>
-          <ScrollView style={{ maxHeight: height*0.6 }}>
-            {filteredPets.map(pet=>(
-              <TouchableOpacity key={pet.id} onPress={()=>{handlePetSelect(pet); setShowSearchModal(false);}}
-                style={{ flexDirection:'row', alignItems:'center', padding:15, borderBottomWidth:1, borderBottomColor:'#f0f0f0' }}>
-                <MaterialIcons name="pets" size={20} color="#A8BBA3"/>
-                <View style={{ flex:1, marginLeft:12 }}>
-                  <Text style={{ fontSize:16, fontWeight:'bold', color:'#000' }}>{pet.name}</Text>
-                  <Text style={{ fontSize:12, color:'#000' }}>{pet.breed} • {pet.age} yrs</Text>
-                  <Text style={{ fontSize:11, color:'#A8BBA3' }}>{feedingCounts[pet.id!]||0} schedules • {upcomingFeedings[pet.id!]||0} upcoming</Text>
-                </View>
-                <MaterialIcons name="arrow-forward-ios" size={16} color="#000"/>
-              </TouchableOpacity>
-            ))}
-            {filteredPets.length===0 && searchQuery && (
-              <View style={{ padding:40, alignItems:'center' }}>
-                <MaterialIcons name="search-off" size={48} color="#A8BBA3"/>
-                <Text style={{ color:'#000', marginTop:10 }}>No pets found</Text>
-              </View>
-            )}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
-
-  if(loading && pets.length===0) return (
-    <View style={{ flex:1, justifyContent:'center', alignItems:'center', backgroundColor:'#fff' }}>
-      <MaterialIcons name="restaurant" size={48} color="#A8BBA3"/>
-      <Text style={{ marginTop:10, color:'#A8BBA3' }}>Loading feeding data...</Text>
-    </View>
-  );
-
   return (
-    <View style={{ flex:1, backgroundColor:'#fff' }}>
-      {/* Header with GIF and search */}
-      <View style={{ backgroundColor:'#A8BBA3', paddingTop:50, paddingBottom:20, paddingHorizontal:20, borderBottomLeftRadius:20, borderBottomRightRadius:20, flexDirection:'row', alignItems:'center', justifyContent:'space-between' }}>
-        <View style={{ alignItems:'center' }}>
-          <Image source={require('../../../assets/images/petgif.gif')} style={{ width:80, height:80 }}/>
-          <Text style={{ fontSize:20, fontWeight:'bold', color:'#000' }}>Feeding Tracker 🍽️</Text>
-          <Text style={{ fontSize:14, color:'#000' }}>Track feeding schedules & reminders</Text>
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+      {/* Header */}
+      <View style={{ backgroundColor: "#A8BBA3", paddingTop: 50, paddingBottom: 20, paddingHorizontal: 20, borderBottomLeftRadius: 20, borderBottomRightRadius: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View style={{ alignItems: "center" }}>
+          <Image source={require("../../../assets/images/petgif.gif")} style={{ width: 80, height: 80 }} />
+          <Text style={{ fontSize: 20, fontWeight: "bold", color: "#000" }}>Feeding Tracker 🍽️</Text>
+          <Text style={{ fontSize: 14, color: "#000" }}>Track feeding schedules & reminders</Text>
         </View>
-        <TouchableOpacity onPress={()=>setShowSearchModal(true)} style={{ padding:10 }}>
-          <MaterialIcons name="search" size={28} color="#000"/>
+        <TouchableOpacity onPress={() => setShowSearchModal(true)} style={{ padding: 10 }}>
+          <MaterialIcons name="search" size={28} color="#000" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingTop:20, paddingBottom:40 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadPets} colors={["#A8BBA3"]} />}>
-        {/* Quick Stats */}
-        <View style={{ margin:20 }}>
-          <Text style={{ fontSize:16, fontWeight:'bold', marginBottom:10, color:'#A8BBA3' }}>Quick Overview:</Text>
-          <View style={{ backgroundColor:'#fff', padding:20, borderRadius:12, flexDirection:'row', justifyContent:'space-around', elevation:3 }}>
-            <View style={{ alignItems:'center' }}>
-              <Text style={{ fontSize:24, fontWeight:'bold', color:'#A8BBA3' }}>{totalPets}</Text>
-              <Text style={{ fontSize:12, color:'#000' }}>Total Pets</Text>
-            </View>
-            <View style={{ alignItems:'center' }}>
-              <Text style={{ fontSize:24, fontWeight:'bold', color:'#000' }}>{totalFeedings}</Text>
-              <Text style={{ fontSize:12, color:'#000' }}>Feeding Schedules</Text>
-            </View>
-            <View style={{ alignItems:'center' }}>
-              <Text style={{ fontSize:24, fontWeight:'bold', color:'#000' }}>{totalUpcoming}</Text>
-              <Text style={{ fontSize:12, color:'#000' }}>Upcoming Feedings</Text>
-            </View>
+      <ScrollView contentContainerStyle={{ padding: 20 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadPets(true)} />}>
+        {/* Stats */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 20 }}>
+          <View style={{ backgroundColor: "#F0F0F0", flex: 1, marginRight: 5, padding: 10, borderRadius: 10, alignItems: "center" }}>
+            <Text style={{ fontSize: 16, fontWeight: "bold" }}>Total Pets</Text>
+            <Text style={{ fontSize: 18 }}>{totalPets}</Text>
+          </View>
+          <View style={{ backgroundColor: "#F0F0F0", flex: 1, marginHorizontal: 5, padding: 10, borderRadius: 10, alignItems: "center" }}>
+            <Text style={{ fontSize: 16, fontWeight: "bold" }}>Feedings</Text>
+            <Text style={{ fontSize: 18 }}>{totalFeedings}</Text>
+          </View>
+          <View style={{ backgroundColor: "#F0F0F0", flex: 1, marginLeft: 5, padding: 10, borderRadius: 10, alignItems: "center" }}>
+            <Text style={{ fontSize: 16, fontWeight: "bold" }}>Upcoming</Text>
+            <Text style={{ fontSize: 18 }}>{totalUpcoming}</Text>
           </View>
         </View>
 
         {/* Pet List */}
-        <View style={{ marginHorizontal:20 }}>
-          {filteredPets.map(pet=>(
-            <TouchableOpacity key={pet.id} onPress={()=>handlePetSelect(pet)}
-              style={{ backgroundColor:'#fff', padding:15, borderRadius:12, marginBottom:12, flexDirection:'row', justifyContent:'space-between', alignItems:'center', elevation:2 }}>
-              <View>
-                <Text style={{ fontSize:18, fontWeight:'bold', color:'#000' }}>{pet.name}</Text>
-                <Text style={{ fontSize:14, color:'#000' }}>{pet.breed} • {pet.age} yrs</Text>
-                <Text style={{ fontSize:12, color:'#A8BBA3' }}>{feedingCounts[pet.id!]||0} schedules • {upcomingFeedings[pet.id!]||0} upcoming</Text>
-              </View>
-              <MaterialIcons name="arrow-forward-ios" size={20} color="#000"/>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {filteredPets.map(pet => (
+          <TouchableOpacity key={pet.id} onPress={() => handlePetSelect(pet)} style={{ flexDirection: "row", backgroundColor: "#fff", padding: 15, borderRadius: 15, marginBottom: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 3 }}>
+            <Image source={{ uri: pet.image || "https://via.placeholder.com/80" }} style={{ width: 60, height: 60, borderRadius: 30, marginRight: 15 }} />
+            <View style={{ justifyContent: "center" }}>
+              <Text style={{ fontSize: 16, fontWeight: "bold" }}>{pet.name}</Text>
+              <Text style={{ fontSize: 14, color: "#555" }}>{pet.breed}</Text>
+              <Text style={{ fontSize: 12, color: "#999" }}>Feedings: {feedingCounts[pet.id || ""] || 0}, Upcoming: {upcomingFeedings[pet.id || ""] || 0}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
 
-      {renderSearchModal()}
+      {/* Search Modal */}
+      <Modal visible={showSearchModal} animationType="slide">
+        <View style={{ flex: 1, paddingTop: 50, paddingHorizontal: 20 }}>
+          <TextInput placeholder="Search pets..." value={searchQuery} onChangeText={setSearchQuery} style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 10, padding: 10, marginBottom: 20 }} />
+          <ScrollView>
+            {filteredPets.map(pet => (
+              <TouchableOpacity key={pet.id} onPress={() => { setShowSearchModal(false); handlePetSelect(pet); }} style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: "#eee" }}>
+                <Text style={{ fontSize: 16 }}>{pet.name} ({pet.breed})</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <TouchableOpacity onPress={() => setShowSearchModal(false)} style={{ marginTop: 20, alignItems: "center" }}>
+            <Text style={{ color: "#A8BBA3", fontSize: 16, fontWeight: "bold" }}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 };

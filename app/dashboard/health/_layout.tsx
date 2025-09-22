@@ -13,7 +13,7 @@ export default function HealthLayout() {
       <Stack.Screen 
         name="[id]" 
         options={{ 
-          headerShown: true,
+          headerShown: false,
           title: 'Pet Health Details',
           headerBackTitle: 'Back'
         }} 
