@@ -28,7 +28,7 @@ Watch the walkthrough/demo of **Pet Health Tracker App**:
 
 Get the latest APK from Google Drive:
 
-[![Download APK](https://img.shields.io/badge/Download-APK-blue?logo=android&logoColor=white)](https://docs.google.com/uc?export=download&id=1GgRqStThTvO42GkNka07_ByejXeUd-81)
+[![Download APK](https://img.shields.io/badge/Download-APK-blue?logo=android&logoColor=white)](https://docs.google.com/uc?export=download&id=1nNxPv0brYW2vNC3-gP6cehbMypNrcMiK)
 
 ---
 ## 🚀 Key Features
