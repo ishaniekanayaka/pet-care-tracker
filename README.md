@@ -11,9 +11,14 @@ A comprehensive mobile application built with **React Native + Expo** for tracki
 
 ## 📱 Screenshots
 
-| Dashboard | Login | Health Records | Feeding Shedule |
-|-----------|-------------|----------------|-----------|
-| ![Dashboard](assets/screenshot/home.jpg) | ![login](assets/screenshot/login.jpg) | ![Health Record](assets/screenshot/health.jpg) | ![Feeding shedule](assets/screenshot/feeding.jpg) |
+| Dashboard | Login | Health Records | Feeding Schedule |
+|-----------|-------|----------------|----------------|
+| ![Dashboard](assets/screenshot/home.jpg) | ![Login](assets/screenshot/login.jpg) | ![Health Record](assets/screenshot/health.jpg) | ![Feeding Schedule](assets/screenshot/feeding.jpg) |
+
+| Vet Page | Health Guidelines | Add Feeding Schedule | Welcome Page |
+|----------|-----------------|--------------------|-------------|
+| ![Vet Page](assets/screenshot/vetnew.jpg) | ![Health Guidelines](assets/screenshot/guideline.jpg) | ![Add Feeding Schedule](assets/screenshot/feedShedule.jpg) | ![Welcome Page](assets/screenshot/welcome.jpg) |
+
 
 ---
 ## 📺 Demo Video
