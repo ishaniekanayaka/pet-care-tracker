@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   View, Text, ScrollView, TouchableOpacity, Alert, RefreshControl, TextInput, 
   Modal, Dimensions, Image, Animated, StatusBar, ActivityIndicator, StyleSheet,
-  Linking, Platform
+  Platform, SafeAreaView
 } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -39,85 +39,103 @@ const FeedingIndex = () => {
   const router = useRouter();
   const userId = auth.currentUser?.uid || "";
 
-  // Enhanced feeding guidelines with web sources
+  // Mobile-optimized feeding guidelines with detailed content
   const feedingGuidelines = [
     {
       category: "Feeding Schedule",
       icon: "schedule",
       color: "#896C6C",
-      webUrl: "https://www.akc.org/expert-advice/nutrition/how-much-should-i-feed-my-dog/",
+      summary: "Proper timing and frequency for healthy meals",
       tips: [
-        "Puppies need 3-4 meals per day until 6 months old",
-        "Adult dogs typically do well with 2 meals per day",
-        "Senior dogs may need smaller, more frequent meals",
-        "Cats prefer multiple small meals throughout the day",
-        "Consistent feeding times help regulate digestion"
-      ]
+        "Puppies under 6 months need 3-4 small meals daily to support rapid growth and prevent hypoglycemia",
+        "Adult dogs (1-7 years) thrive on 2 meals per day, typically morning and evening",
+        "Senior dogs (7+ years) may benefit from smaller, more frequent meals to aid digestion",
+        "Cats are natural grazers and prefer 4-6 small meals throughout the day",
+        "Maintain consistent feeding times to regulate your pet's biological clock and digestive system",
+        "Allow 12-hour intervals between main meals for optimal nutrient absorption",
+        "Never feed immediately before or after intense exercise to prevent bloat"
+      ],
+      additionalInfo: "Consistent feeding schedules help regulate your pet's metabolism, reduce anxiety, and make house training easier. Working pets or pregnant/nursing animals may need adjusted schedules."
     },
     {
       category: "Portion Control",
       icon: "scale",
       color: "#5D688A",
-      webUrl: "https://www.petmd.com/dog/nutrition/evr_dg_how-much-should-you-feed-your-dog",
+      summary: "Right amounts for optimal weight and health",
       tips: [
-        "Follow package guidelines based on weight and activity level",
-        "Adjust portions based on your pet's body condition",
-        "Use measuring cups for accuracy",
-        "Treats should not exceed 10% of daily calories",
-        "Monitor weight monthly and adjust as needed"
-      ]
+        "Start with manufacturer's feeding guidelines based on current weight, then adjust based on body condition",
+        "Use proper measuring cups or a kitchen scale for accuracy - eyeballing portions often leads to overfeeding",
+        "Body condition scoring: You should feel ribs easily but not see them prominently",
+        "Treats and snacks should never exceed 10% of total daily caloric intake",
+        "Active and working dogs need 20-40% more calories than sedentary pets",
+        "Monitor weight monthly and adjust portions by 10-15% if weight gain/loss occurs",
+        "Spayed/neutered pets often need 20-25% fewer calories than intact animals"
+      ],
+      additionalInfo: "Obesity is the most common nutritional disease in pets. Regular body condition assessments and portion adjustments are crucial for long-term health."
     },
     {
-      category: "Food Types",
+      category: "Food Types & Quality",
       icon: "restaurant",
       color: "#A8BBA3",
-      webUrl: "https://www.petnutritionalliance.org/",
+      summary: "Choosing nutritious, appropriate foods",
       tips: [
-        "Choose age-appropriate food (puppy, adult, senior)",
-        "High-quality protein should be first ingredient",
-        "Avoid artificial preservatives and fillers",
-        "Consider breed-specific formulations",
-        "Gradual transitions when changing foods (7-10 days)"
-      ]
+        "Select foods appropriate for life stage: puppy/kitten, adult, or senior formulations",
+        "First ingredient should be a named meat source (chicken, beef, salmon, not 'meat meal')",
+        "Avoid foods with excessive artificial colors, preservatives (BHA, BHT, ethoxyquin), and fillers",
+        "Breed-specific formulas can address unique nutritional needs (large breed puppy, Persian cat, etc.)",
+        "Transition foods gradually over 7-10 days: mix increasing amounts of new food with decreasing amounts of old food",
+        "Dry food (kibble) is convenient and helps dental health, wet food provides more moisture",
+        "Grain-free diets are only necessary for pets with confirmed grain allergies"
+      ],
+      additionalInfo: "Premium foods may cost more upfront but often provide better nutrition per serving and can reduce long-term veterinary costs."
     },
     {
-      category: "Hydration",
+      category: "Hydration & Water",
       icon: "local-drink",
       color: "#2196F3",
-      webUrl: "https://www.vet.cornell.edu/departments-centers-and-institutes/riney-canine-health-center/health-info/water-your-dogs-health",
+      summary: "Essential water needs and quality",
       tips: [
-        "Fresh water should always be available",
-        "Clean water bowls daily to prevent bacteria",
-        "Dogs need approximately 1 ounce per pound daily",
-        "Cats prefer wide, shallow bowls (whisker stress)",
-        "Monitor water intake - changes may indicate health issues"
-      ]
+        "Fresh, clean water must be available 24/7 - pets should never be without access to water",
+        "Clean water bowls daily with soap and hot water to prevent bacterial growth and biofilm formation",
+        "Dogs typically need 1 ounce of water per pound of body weight daily",
+        "Cats prefer wide, shallow bowls to prevent whisker stress and may prefer ceramic or stainless steel over plastic",
+        "Monitor water intake changes - sudden increases or decreases can indicate health problems",
+        "Multiple water stations in multi-level homes ensure easy access",
+        "Some pets prefer moving water - pet fountains can encourage hydration"
+      ],
+      additionalInfo: "Proper hydration supports kidney function, temperature regulation, and nutrient transport. Wet food contributes to daily water intake."
     },
     {
-      category: "Special Diets",
+      category: "Special Diets & Health",
       icon: "healing",
       color: "#FF9800",
-      webUrl: "https://www.vetmed.wisc.edu/pet-food-and-treat-recalls/",
+      summary: "Therapeutic and specialized nutrition",
       tips: [
-        "Prescription diets for specific health conditions",
-        "Grain-free options only if recommended by vet",
-        "Limited ingredient diets for allergies",
-        "Homemade diets require veterinary nutritionist guidance",
-        "Raw diets carry bacterial risks - handle with care"
-      ]
+        "Prescription therapeutic diets should only be used under veterinary supervision for specific conditions",
+        "Limited ingredient diets help identify food allergies - introduce one protein and one carb source",
+        "Weight management formulas are lower in calories but maintain nutrition for overweight pets",
+        "Urinary health diets can prevent crystals and stones in susceptible pets",
+        "Homemade diets require consultation with a veterinary nutritionist to ensure nutritional completeness",
+        "Raw diets carry risks of bacterial contamination and nutritional imbalances if not properly formulated",
+        "Supplements are usually unnecessary with complete commercial diets unless prescribed"
+      ],
+      additionalInfo: "Always consult your veterinarian before starting special diets or supplements. Some conditions require specific nutritional management."
     },
     {
-      category: "Feeding Safety",
+      category: "Safety & Toxic Foods",
       icon: "security",
       color: "#FF6B6B",
-      webUrl: "https://www.aspca.org/pet-care/animal-poison-control",
+      summary: "Protecting pets from harmful substances",
       tips: [
-        "Avoid toxic foods: chocolate, grapes, onions, garlic",
-        "No cooked bones - they can splinter and cause injury",
-        "Supervise meals to prevent choking",
-        "Store food in airtight containers to maintain freshness",
-        "Check expiration dates and recall notices regularly"
-      ]
+        "Never feed chocolate, grapes, raisins, onions, garlic, macadamia nuts, or xylitol (artificial sweetener) - these are toxic",
+        "Cooked bones can splinter and cause choking, intestinal blockage, or perforation",
+        "Supervise meals, especially in multi-pet households, to prevent food guarding and ensure everyone eats appropriately",
+        "Store pet food in airtight containers in cool, dry places to maintain freshness and prevent pests",
+        "Check expiration dates regularly and follow 'use by' dates on opened wet food",
+        "Sign up for pet food recall alerts from FDA and manufacturer websites",
+        "Keep garbage cans secure and away from pets to prevent scavenging dangerous items"
+      ],
+      additionalInfo: "Emergency veterinary contact information should be readily available. If poisoning is suspected, contact your vet or pet poison control immediately."
     }
   ];
 
@@ -223,21 +241,6 @@ const FeedingIndex = () => {
     }
   };
 
-  // Function to open web guidelines
-  const openWebGuideline = async (url: string) => {
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert("Error", "Unable to open web browser");
-      }
-    } catch (error) {
-      console.error('Error opening URL:', error);
-      Alert.alert("Error", "Unable to open the guideline webpage");
-    }
-  };
-
   useEffect(() => {
     if (!searchQuery.trim()) setFilteredPets(pets);
     else setFilteredPets(pets.filter(pet => 
@@ -268,8 +271,13 @@ const FeedingIndex = () => {
   const totalUpcoming = Object.values(upcomingFeedings).reduce((sum, c) => sum + c, 0);
 
   const renderSearchModal = () => (
-    <Modal visible={showSearchModal} transparent animationType="slide" onRequestClose={() => setShowSearchModal(false)}>
-      <View style={styles.modalOverlay}>
+    <Modal 
+      visible={showSearchModal} 
+      transparent 
+      animationType="slide" 
+      onRequestClose={() => setShowSearchModal(false)}
+    >
+      <SafeAreaView style={styles.modalOverlay}>
         <View style={styles.searchModal}>
           <View style={styles.searchModalHeader}>
             <MaterialIcons name="search" size={24} color="#A8BBA3"/>
@@ -284,7 +292,7 @@ const FeedingIndex = () => {
               <MaterialIcons name="close" size={24} color="#000"/>
             </TouchableOpacity>
           </View>
-          <ScrollView style={{ maxHeight: height*0.6 }}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
             {filteredPets.map((pet, index) => (
               <TouchableOpacity 
                 key={pet.id} 
@@ -313,7 +321,7 @@ const FeedingIndex = () => {
             )}
           </ScrollView>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 
@@ -321,11 +329,16 @@ const FeedingIndex = () => {
     const selectedGuideline = selectedGuidelineIndex !== null ? feedingGuidelines[selectedGuidelineIndex] : null;
     
     return (
-      <Modal visible={showGuidelinesModal} transparent animationType="slide" onRequestClose={() => {
-        setShowGuidelinesModal(false);
-        setSelectedGuidelineIndex(null);
-      }}>
-        <View style={styles.modalOverlay}>
+      <Modal 
+        visible={showGuidelinesModal} 
+        transparent 
+        animationType="slide" 
+        onRequestClose={() => {
+          setShowGuidelinesModal(false);
+          setSelectedGuidelineIndex(null);
+        }}
+      >
+        <SafeAreaView style={styles.modalOverlay}>
           <View style={styles.guidelinesModal}>
             <View style={[styles.guidelinesHeader, selectedGuideline && { backgroundColor: selectedGuideline.color + '15' }]}>
               <MaterialIcons 
@@ -344,32 +357,36 @@ const FeedingIndex = () => {
               </TouchableOpacity>
             </View>
             
-            <ScrollView style={styles.guidelinesContent} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              style={styles.guidelinesContent} 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ flexGrow: 1, paddingBottom: 30 }}
+            >
               {selectedGuideline ? (
-                // Show specific guideline
-                <View>
+                // Show specific guideline with mobile-optimized content
+                <View style={{ flex: 1 }}>
                   <Text style={[styles.specificGuidelineIntro, { color: selectedGuideline.color }]}>
-                    Professional tips for {selectedGuideline.category.toLowerCase()}
+                    {selectedGuideline.summary}
                   </Text>
                   
                   <View style={[styles.specificGuidelineCard, { borderLeftColor: selectedGuideline.color }]}>
+                    <Text style={styles.tipsHeader}>Essential Guidelines:</Text>
                     {selectedGuideline.tips.map((tip, tipIndex) => (
                       <View key={tipIndex} style={styles.tipContainer}>
                         <View style={[styles.tipBullet, { backgroundColor: selectedGuideline.color }]} />
                         <Text style={styles.tipText}>{tip}</Text>
                       </View>
                     ))}
+                    
+                    {selectedGuideline.additionalInfo && (
+                      <View style={[styles.additionalInfoCard, { backgroundColor: selectedGuideline.color + '10' }]}>
+                        <MaterialIcons name="info" size={16} color={selectedGuideline.color} />
+                        <Text style={[styles.additionalInfoText, { color: selectedGuideline.color }]}>
+                          {selectedGuideline.additionalInfo}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-
-                  {/* Web resource button */}
-                  <TouchableOpacity 
-                    style={[styles.webResourceButton, { backgroundColor: selectedGuideline.color }]}
-                    onPress={() => openWebGuideline(selectedGuideline.webUrl)}
-                  >
-                    <MaterialIcons name="language" size={16} color="white" />
-                    <Text style={styles.webResourceText}>View Online Resources</Text>
-                    <MaterialIcons name="open-in-new" size={14} color="white" />
-                  </TouchableOpacity>
 
                   {/* Back to all guidelines button */}
                   <TouchableOpacity 
@@ -382,9 +399,9 @@ const FeedingIndex = () => {
                 </View>
               ) : (
                 // Show all guidelines overview
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={styles.guidelinesIntro}>
-                    Ensure proper nutrition with these professional feeding guidelines and best practices.
+                    Comprehensive feeding guidelines and best practices for optimal pet nutrition and health.
                   </Text>
                   
                   {feedingGuidelines.map((guideline, index) => (
@@ -403,13 +420,12 @@ const FeedingIndex = () => {
                       </View>
                       
                       <Text style={styles.guidelinePreview}>
-                        {guideline.tips.length} professional tips • Tap to view details
+                        {guideline.summary}
                       </Text>
 
-                      <View style={styles.webIndicator}>
-                        <MaterialIcons name="language" size={12} color="#666" />
-                        <Text style={styles.webIndicatorText}>Web resources available</Text>
-                      </View>
+                      <Text style={styles.tipCount}>
+                        {guideline.tips.length} detailed guidelines • Tap to view
+                      </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -418,12 +434,12 @@ const FeedingIndex = () => {
               <View style={styles.disclaimerCard}>
                 <MaterialIcons name="info" size={20} color="#FF9800" />
                 <Text style={styles.disclaimerText}>
-                  These guidelines are for general information only. Always consult with a qualified veterinarian for your pet's specific nutritional needs.
+                  These guidelines provide general nutritional information. Always consult with a qualified veterinarian for your pet's specific dietary needs and health conditions.
                 </Text>
               </View>
             </ScrollView>
           </View>
-        </View>
+        </SafeAreaView>
       </Modal>
     );
   };
@@ -499,11 +515,11 @@ const FeedingIndex = () => {
           </View>
         </View>
 
-        {/* Enhanced Feeding Guidelines Preview */}
+        {/* Enhanced Mobile-First Feeding Guidelines Preview */}
         <View style={styles.guidelinesPreview}>
           <View style={styles.previewHeader}>
             <MaterialIcons name="menu-book" size={18} color="#A8BBA3" />
-            <Text style={styles.previewTitle}>Quick Guidelines</Text>
+            <Text style={styles.previewTitle}>Nutrition Guidelines</Text>
             <TouchableOpacity onPress={() => {
               setSelectedGuidelineIndex(null);
               setShowGuidelinesModal(true);
@@ -528,8 +544,8 @@ const FeedingIndex = () => {
                 <MaterialIcons name={guideline.icon as any} size={20} color={guideline.color} />
                 <Text style={styles.previewCardTitle}>{guideline.category}</Text>
                 <Text style={styles.previewCardSubtitle}>{guideline.tips.length} tips</Text>
-                <View style={styles.webBadge}>
-                  <MaterialIcons name="language" size={10} color="white" />
+                <View style={[styles.mobileBadge, { backgroundColor: guideline.color }]}>
+                  <MaterialIcons name="phone-android" size={10} color="white" />
                 </View>
               </TouchableOpacity>
             ))}
@@ -841,11 +857,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 2,
   },
-  webBadge: {
+  mobileBadge: {
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: '#A8BBA3',
     borderRadius: 8,
     width: 16,
     height: 16,
@@ -1005,10 +1020,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 40,
   },
   searchModal: {
-    width: "92%",
-    maxHeight: "85%",
+    width: "100%",
+    maxHeight: height * 0.85,
     backgroundColor: "white",
     borderRadius: 18,
     overflow: "hidden",
@@ -1073,8 +1090,8 @@ const styles = StyleSheet.create({
   
   // Enhanced Guidelines Modal
   guidelinesModal: {
-    width: "95%",
-    maxHeight: "92%",
+    width: "100%",
+    maxHeight: height * 0.9,
     backgroundColor: "white",
     borderRadius: 18,
     overflow: "hidden",
@@ -1083,6 +1100,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
+    flex: 1,
   },
   guidelinesHeader: {
     flexDirection: "row",
@@ -1091,6 +1109,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     backgroundColor: "#f8f9fa",
+    minHeight: 70,
   },
   guidelinesTitle: {
     flex: 1,
@@ -1130,6 +1149,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
   },
+  tipsHeader: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
   guidelineCard: {
     backgroundColor: "#fff",
     borderRadius: 15,
@@ -1154,44 +1179,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   guidelinePreview: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#666',
     marginTop: 6,
+    lineHeight: 20,
     fontStyle: 'italic',
-    lineHeight: 18,
   },
-  webIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  tipCount: {
+    fontSize: 12,
+    color: '#999',
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
-  },
-  webIndicatorText: {
-    fontSize: 11,
-    color: '#666',
-    marginLeft: 4,
     fontStyle: 'italic',
-  },
-  webResourceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  webResourceText: {
-    color: 'white',
-    fontWeight: 'bold',
-    marginHorizontal: 8,
-    fontSize: 15,
   },
   backButton: {
     flexDirection: 'row',
@@ -1202,6 +1203,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     borderWidth: 1,
     borderColor: '#A8BBA3',
+    marginTop: 20,
   },
   backButtonText: {
     color: '#A8BBA3',
@@ -1213,20 +1215,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 15,
-    paddingLeft: 4,
+    paddingRight: 10,
   },
   tipBullet: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginTop: 7,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 8,
     marginRight: 15,
+    flexShrink: 0,
   },
   tipText: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: "#444",
-    lineHeight: 22,
+    lineHeight: 20,
+  },
+  additionalInfoCard: {
+    borderRadius: 12,
+    padding: 15,
+    marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  additionalInfoText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    marginLeft: 8,
+    fontWeight: '500',
   },
   disclaimerCard: {
     backgroundColor: "#FFF8E1",
@@ -1234,8 +1251,8 @@ const styles = StyleSheet.create({
     padding: 18,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginTop: 15,
-    marginBottom: 25,
+    marginTop: 25,
+    marginBottom: 10,
     borderLeftWidth: 5,
     borderLeftColor: "#FF9800",
   },

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { 
   View, Text, ScrollView, TouchableOpacity, Alert, RefreshControl, TextInput, 
   Modal, Dimensions, Image, Animated, StatusBar, ActivityIndicator, StyleSheet,
-  Linking, Platform
+  Linking, Platform, SafeAreaView
 } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -27,8 +27,6 @@ const HealthIndex = () => {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [selectedGuidelineIndex, setSelectedGuidelineIndex] = useState<number | null>(null);
-  const [guidelinesLoading, setGuidelinesLoading] = useState(false);
-  const [webGuidelines, setWebGuidelines] = useState<any[]>([]);
   const [scrollX] = useState(new Animated.Value(0));
   const [cardAnimations] = useState(() => 
     Array.from({ length: 10 }, () => ({
@@ -41,85 +39,119 @@ const HealthIndex = () => {
   const router = useRouter();
   const userId = auth.currentUser?.uid || "";
 
-  // Enhanced health guidelines with web sources
+  // Enhanced health guidelines with comprehensive mobile-optimized content
   const healthGuidelines = [
     {
       category: "Vaccinations",
       icon: "vaccines",
       color: "#896C6C",
-      webUrl: "https://www.avma.org/resources/pet-owners/petcare/vaccinations",
+      summary: "Essential vaccines and immunization schedules for optimal protection",
       tips: [
-        "Core vaccines: DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza)",
-        "Rabies vaccination required by law in most areas",
-        "Annual boosters recommended for adult pets",
-        "Puppies need series of vaccinations starting at 6-8 weeks",
-        "Keep vaccination records up to date for boarding/travel"
-      ]
+        "Core vaccines include DHPP (Distemper, Hepatitis, Parvovirus, Parainfluenza) for dogs - these prevent fatal diseases",
+        "Rabies vaccination is legally required in most areas and protects both pets and humans from this deadly virus",
+        "Puppies need a series of vaccinations starting at 6-8 weeks, with boosters every 3-4 weeks until 16 weeks old",
+        "Annual boosters are recommended for adult pets to maintain immunity levels throughout their lives",
+        "Non-core vaccines like Lyme disease, kennel cough may be recommended based on your pet's lifestyle and location",
+        "Keep detailed vaccination records for boarding, grooming, travel, and emergency situations",
+        "Discuss vaccination schedules with your vet as some pets may need modified protocols due to health conditions"
+      ],
+      additionalInfo: "Vaccines are one of the most important preventive measures in veterinary medicine. They've dramatically reduced the incidence of serious infectious diseases in pets."
     },
     {
       category: "Regular Checkups",
-      icon: "medical-services",
+      icon: "medical-services", 
       color: "#5D688A",
-      webUrl: "https://www.aaha.org/your-pet/pet-owner-education/",
+      summary: "Routine health examinations for early disease detection",
       tips: [
-        "Annual wellness exams for healthy adult pets",
-        "Senior pets (7+ years) need bi-annual checkups",
-        "Early detection prevents serious health issues",
-        "Dental examinations should be part of routine care",
-        "Weight monitoring helps prevent obesity-related problems"
-      ]
+        "Annual wellness exams for healthy adult pets allow early detection of health issues before symptoms appear",
+        "Senior pets (7+ years for dogs, 11+ for cats) need bi-annual checkups as aging accelerates health changes",
+        "Wellness exams include physical examination, weight assessment, dental check, and discussion of behavior changes",
+        "Blood work annually after age 7 helps detect kidney disease, diabetes, and other conditions early",
+        "Dental examinations should be part of routine care as dental disease affects 80% of pets by age 3",
+        "Early detection of problems like arthritis, heart disease, or cancer significantly improves treatment outcomes",
+        "Establish baseline health parameters when pets are young for future comparison"
+      ],
+      additionalInfo: "Regular checkups are your pet's best defense against serious illness. Many conditions are highly treatable when caught early but become expensive or untreatable when advanced."
     },
     {
       category: "Preventive Care",
       icon: "health-and-safety",
-      color: "#A8BBA3",
-      webUrl: "https://www.petmd.com/dog/care",
+      color: "#A8BBA3", 
+      summary: "Proactive measures to prevent common health problems",
       tips: [
-        "Monthly flea and tick prevention year-round",
-        "Regular deworming based on lifestyle and risk",
-        "Heartworm prevention in mosquito-active areas",
-        "Spaying/neutering prevents health and behavioral issues",
-        "Regular grooming maintains skin and coat health"
-      ]
+        "Monthly flea and tick prevention year-round prevents infestations and tick-borne diseases like Lyme disease",
+        "Regular deworming based on lifestyle and risk - outdoor pets need more frequent treatment than indoor pets",
+        "Heartworm prevention is crucial in mosquito-active areas as heartworm disease is expensive and difficult to treat",
+        "Spaying/neutering prevents reproductive cancers, reduces roaming behavior, and eliminates unwanted pregnancies",
+        "Regular grooming maintains skin and coat health, prevents matting, and allows early detection of lumps or skin issues",
+        "Nail trimming every 4-6 weeks prevents overgrowth, splitting, and painful ingrown nails",
+        "Ear cleaning as recommended by your vet prevents infections, especially in dogs with floppy ears"
+      ],
+      additionalInfo: "Preventive care is always more cost-effective than treating diseases after they develop. A comprehensive prevention program keeps pets healthier and happier throughout their lives."
     },
     {
       category: "Emergency Preparedness",
       icon: "emergency",
       color: "#FF6B6B",
-      webUrl: "https://www.aspca.org/pet-care/general-pet-care/disaster-preparedness",
+      summary: "Being ready for urgent health situations and emergencies", 
       tips: [
-        "Know your nearest 24-hour emergency vet clinic",
-        "Keep emergency contact numbers easily accessible",
-        "Basic first aid kit for minor injuries",
-        "Signs requiring immediate attention: difficulty breathing, seizures, bleeding",
-        "Keep recent photos and medical records for identification"
-      ]
+        "Know your nearest 24-hour emergency vet clinic location, phone number, and estimated travel time",
+        "Keep emergency contact numbers easily accessible: your vet, emergency clinic, and pet poison control hotline",
+        "Basic first aid kit should include gauze, adhesive tape, antiseptic wipes, digital thermometer, and emergency contact list",
+        "Signs requiring immediate attention: difficulty breathing, seizures, uncontrolled bleeding, loss of consciousness, or severe trauma",
+        "Keep recent photos and copies of medical records for identification if pets become lost during emergencies",
+        "Learn basic first aid techniques: how to check pulse, control bleeding, and safely transport an injured pet",
+        "Have an emergency kit ready with food, medications, leashes, carriers, and comfort items for disaster preparedness"
+      ],
+      additionalInfo: "Emergency preparedness can save your pet's life. Many pet emergencies occur outside regular veterinary hours, so knowing what to do and where to go is crucial."
     },
     {
       category: "Nutrition & Diet",
       icon: "restaurant",
       color: "#FF9800",
-      webUrl: "https://www.petnutritionalliance.org/",
+      summary: "Optimal feeding strategies for lifelong health and wellness",
       tips: [
-        "High-quality pet food appropriate for life stage",
-        "Measure portions to prevent overfeeding",
-        "Fresh water available at all times",
-        "Avoid toxic foods: chocolate, grapes, onions, garlic",
-        "Consult vet before changing diets or adding supplements"
-      ]
+        "Choose high-quality pet food appropriate for your pet's life stage: puppy/kitten, adult, or senior formulations",
+        "Measure portions carefully using proper measuring cups or scales - free-feeding often leads to obesity",
+        "Fresh, clean water must be available at all times - dehydration can quickly become life-threatening",
+        "Toxic foods to never feed: chocolate, grapes, raisins, onions, garlic, macadamia nuts, and xylitol (artificial sweetener)",
+        "Consult your veterinarian before changing diets, especially for pets with health conditions or food allergies",
+        "Monitor body condition regularly - you should be able to feel ribs but not see them prominently",
+        "Senior pets may need specialized diets for kidney support, joint health, or weight management"
+      ],
+      additionalInfo: "Proper nutrition is the foundation of good health. Quality nutrition supports immune function, maintains healthy weight, and can prevent many chronic diseases."
     },
     {
       category: "Exercise & Mental Health",
       icon: "directions-run",
       color: "#4CAF50",
-      webUrl: "https://www.akc.org/expert-advice/health/exercise-dogs-guide/",
+      summary: "Physical activity and mental stimulation for overall wellbeing",
       tips: [
-        "Daily exercise requirements vary by breed and age",
-        "Mental stimulation through training and puzzle toys",
-        "Socialization with other pets and people",
-        "Regular play sessions strengthen bonds",
-        "Indoor cats need environmental enrichment"
-      ]
+        "Daily exercise requirements vary by breed, age, and health status - high-energy breeds need more activity",
+        "Mental stimulation through puzzle toys, training sessions, and new experiences prevents boredom and destructive behavior",
+        "Socialization with other pets and people should continue throughout life to maintain confident, well-adjusted behavior",
+        "Regular play sessions strengthen the human-animal bond and provide both physical and mental benefits",
+        "Indoor cats need environmental enrichment: climbing trees, window perches, interactive toys, and rotating toy selection",
+        "Swimming is excellent low-impact exercise for dogs with arthritis or joint problems",
+        "Senior pets still need exercise but may require shorter, gentler sessions and more frequent rest breaks"
+      ],
+      additionalInfo: "Physical and mental health are closely connected. Regular exercise and mental stimulation help prevent obesity, reduce anxiety, and extend quality of life."
+    },
+    {
+      category: "Dental Care",
+      icon: "medical-information",
+      color: "#9C27B0",
+      summary: "Maintaining oral health to prevent systemic disease",
+      tips: [
+        "Daily tooth brushing with pet-specific toothpaste is the gold standard for preventing dental disease",
+        "Dental chews and toys can help reduce plaque and tartar buildup between professional cleanings",
+        "Professional dental cleanings under anesthesia allow thorough examination and treatment below the gum line",
+        "Signs of dental disease: bad breath, yellow/brown tartar, red or swollen gums, difficulty eating, or pawing at the mouth",
+        "Never use human toothpaste as it contains fluoride which is toxic to pets",
+        "Start dental care early in puppies and kittens to establish good habits and tolerance",
+        "Untreated dental disease can lead to tooth loss, pain, and bacteria entering the bloodstream affecting heart, liver, and kidneys"
+      ],
+      additionalInfo: "Dental disease is one of the most common health problems in pets, yet it's entirely preventable with proper care. Good dental hygiene significantly impacts overall health and quality of life."
     }
   ];
 
@@ -226,21 +258,6 @@ const HealthIndex = () => {
     }
   };
 
-  // Function to open web guidelines
-  const openWebGuideline = async (url: string) => {
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert("Error", "Unable to open web browser");
-      }
-    } catch (error) {
-      console.error('Error opening URL:', error);
-      Alert.alert("Error", "Unable to open the guideline webpage");
-    }
-  };
-
   useEffect(() => {
     if (!searchQuery.trim()) setFilteredPets(pets);
     else setFilteredPets(pets.filter(pet => 
@@ -271,8 +288,13 @@ const HealthIndex = () => {
   const totalUpcomingReminders = Object.values(upcomingReminders).reduce((sum, c) => sum + c, 0);
 
   const renderSearchModal = () => (
-    <Modal visible={showSearchModal} transparent animationType="slide" onRequestClose={() => setShowSearchModal(false)}>
-      <View style={styles.modalOverlay}>
+    <Modal 
+      visible={showSearchModal} 
+      transparent 
+      animationType="slide" 
+      onRequestClose={() => setShowSearchModal(false)}
+    >
+      <SafeAreaView style={styles.modalOverlay}>
         <View style={styles.searchModal}>
           <View style={styles.searchModalHeader}>
             <MaterialIcons name="search" size={24} color="#A8BBA3"/>
@@ -287,7 +309,7 @@ const HealthIndex = () => {
               <MaterialIcons name="close" size={24} color="#000"/>
             </TouchableOpacity>
           </View>
-          <ScrollView style={{ maxHeight: height*0.6 }}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
             {filteredPets.map((pet, index) => (
               <TouchableOpacity 
                 key={pet.id} 
@@ -316,7 +338,7 @@ const HealthIndex = () => {
             )}
           </ScrollView>
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 
@@ -324,11 +346,16 @@ const HealthIndex = () => {
     const selectedGuideline = selectedGuidelineIndex !== null ? healthGuidelines[selectedGuidelineIndex] : null;
     
     return (
-      <Modal visible={showGuidelinesModal} transparent animationType="slide" onRequestClose={() => {
-        setShowGuidelinesModal(false);
-        setSelectedGuidelineIndex(null);
-      }}>
-        <View style={styles.modalOverlay}>
+      <Modal 
+        visible={showGuidelinesModal} 
+        transparent 
+        animationType="slide" 
+        onRequestClose={() => {
+          setShowGuidelinesModal(false);
+          setSelectedGuidelineIndex(null);
+        }}
+      >
+        <SafeAreaView style={styles.modalOverlay}>
           <View style={styles.guidelinesModal}>
             <View style={[styles.guidelinesHeader, selectedGuideline && { backgroundColor: selectedGuideline.color + '15' }]}>
               <MaterialIcons 
@@ -347,32 +374,36 @@ const HealthIndex = () => {
               </TouchableOpacity>
             </View>
             
-            <ScrollView style={styles.guidelinesContent} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              style={styles.guidelinesContent} 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ flexGrow: 1, paddingBottom: 30 }}
+            >
               {selectedGuideline ? (
-                // Show specific guideline
-                <View>
+                // Show specific guideline with mobile-optimized content
+                <View style={{ flex: 1 }}>
                   <Text style={[styles.specificGuidelineIntro, { color: selectedGuideline.color }]}>
-                    Professional tips for {selectedGuideline.category.toLowerCase()}
+                    {selectedGuideline.summary}
                   </Text>
                   
                   <View style={[styles.specificGuidelineCard, { borderLeftColor: selectedGuideline.color }]}>
+                    <Text style={styles.tipsHeader}>Essential Guidelines:</Text>
                     {selectedGuideline.tips.map((tip, tipIndex) => (
                       <View key={tipIndex} style={styles.tipContainer}>
                         <View style={[styles.tipBullet, { backgroundColor: selectedGuideline.color }]} />
                         <Text style={styles.tipText}>{tip}</Text>
                       </View>
                     ))}
+                    
+                    {selectedGuideline.additionalInfo && (
+                      <View style={[styles.additionalInfoCard, { backgroundColor: selectedGuideline.color + '10' }]}>
+                        <MaterialIcons name="info" size={16} color={selectedGuideline.color} />
+                        <Text style={[styles.additionalInfoText, { color: selectedGuideline.color }]}>
+                          {selectedGuideline.additionalInfo}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-
-                  {/* Web resource button */}
-                  <TouchableOpacity 
-                    style={[styles.webResourceButton, { backgroundColor: selectedGuideline.color }]}
-                    onPress={() => openWebGuideline(selectedGuideline.webUrl)}
-                  >
-                    <MaterialIcons name="language" size={16} color="white" />
-                    <Text style={styles.webResourceText}>View Online Resources</Text>
-                    <MaterialIcons name="open-in-new" size={14} color="white" />
-                  </TouchableOpacity>
 
                   {/* Back to all guidelines button */}
                   <TouchableOpacity 
@@ -385,9 +416,9 @@ const HealthIndex = () => {
                 </View>
               ) : (
                 // Show all guidelines overview
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={styles.guidelinesIntro}>
-                    Keep your pet healthy with these professional veterinary guidelines and best practices.
+                    Comprehensive health guidelines and best practices for optimal pet wellness and preventive care.
                   </Text>
                   
                   {healthGuidelines.map((guideline, index) => (
@@ -406,13 +437,12 @@ const HealthIndex = () => {
                       </View>
                       
                       <Text style={styles.guidelinePreview}>
-                        {guideline.tips.length} professional tips • Tap to view details
+                        {guideline.summary}
                       </Text>
 
-                      <View style={styles.webIndicator}>
-                        <MaterialIcons name="language" size={12} color="#666" />
-                        <Text style={styles.webIndicatorText}>Web resources available</Text>
-                      </View>
+                      <Text style={styles.tipCount}>
+                        {guideline.tips.length} detailed guidelines • Tap to view
+                      </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -421,12 +451,12 @@ const HealthIndex = () => {
               <View style={styles.disclaimerCard}>
                 <MaterialIcons name="info" size={20} color="#FF9800" />
                 <Text style={styles.disclaimerText}>
-                  These guidelines are for general information only. Always consult with a qualified veterinarian for your pet's specific health needs and treatment plans.
+                  These guidelines provide general health information. Always consult with a qualified veterinarian for your pet's specific health needs and medical conditions.
                 </Text>
               </View>
             </ScrollView>
           </View>
-        </View>
+        </SafeAreaView>
       </Modal>
     );
   };
@@ -502,11 +532,11 @@ const HealthIndex = () => {
           </View>
         </View>
 
-        {/* Enhanced Health Guidelines Preview */}
+        {/* Enhanced Mobile-First Health Guidelines Preview */}
         <View style={styles.guidelinesPreview}>
           <View style={styles.previewHeader}>
             <MaterialIcons name="menu-book" size={18} color="#A8BBA3" />
-            <Text style={styles.previewTitle}>Quick Guidelines</Text>
+            <Text style={styles.previewTitle}>Health Guidelines</Text>
             <TouchableOpacity onPress={() => {
               setSelectedGuidelineIndex(null);
               setShowGuidelinesModal(true);
@@ -531,8 +561,8 @@ const HealthIndex = () => {
                 <MaterialIcons name={guideline.icon as any} size={20} color={guideline.color} />
                 <Text style={styles.previewCardTitle}>{guideline.category}</Text>
                 <Text style={styles.previewCardSubtitle}>{guideline.tips.length} tips</Text>
-                <View style={styles.webBadge}>
-                  <MaterialIcons name="language" size={10} color="white" />
+                <View style={[styles.mobileBadge, { backgroundColor: guideline.color }]}>
+                  <MaterialIcons name="phone-android" size={10} color="white" />
                 </View>
               </TouchableOpacity>
             ))}
@@ -844,11 +874,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 2,
   },
-  webBadge: {
+  mobileBadge: {
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: '#A8BBA3',
     borderRadius: 8,
     width: 16,
     height: 16,
@@ -1009,10 +1038,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 40,
   },
   searchModal: {
-    width: "92%",
-    maxHeight: "85%",
+    width: "100%",
+    maxHeight: height * 0.85,
     backgroundColor: "white",
     borderRadius: 18,
     overflow: "hidden",
@@ -1077,8 +1108,8 @@ const styles = StyleSheet.create({
   
   // Enhanced Guidelines Modal
   guidelinesModal: {
-    width: "95%",
-    maxHeight: "92%",
+    width: "100%",
+    maxHeight: height * 0.9,
     backgroundColor: "white",
     borderRadius: 18,
     overflow: "hidden",
@@ -1087,6 +1118,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
+    flex: 1,
   },
   guidelinesHeader: {
     flexDirection: "row",
@@ -1095,6 +1127,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     backgroundColor: "#f8f9fa",
+    minHeight: 70,
   },
   guidelinesTitle: {
     flex: 1,
@@ -1134,6 +1167,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
   },
+  tipsHeader: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
   guidelineCard: {
     backgroundColor: "#fff",
     borderRadius: 15,
@@ -1158,44 +1197,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   guidelinePreview: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#666',
     marginTop: 6,
+    lineHeight: 20,
     fontStyle: 'italic',
-    lineHeight: 18,
   },
-  webIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  tipCount: {
+    fontSize: 12,
+    color: '#999',
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
-  },
-  webIndicatorText: {
-    fontSize: 11,
-    color: '#666',
-    marginLeft: 4,
     fontStyle: 'italic',
-  },
-  webResourceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  webResourceText: {
-    color: 'white',
-    fontWeight: 'bold',
-    marginHorizontal: 8,
-    fontSize: 15,
   },
   backButton: {
     flexDirection: 'row',
@@ -1206,6 +1221,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     borderWidth: 1,
     borderColor: '#A8BBA3',
+    marginTop: 20,
   },
   backButtonText: {
     color: '#A8BBA3',
@@ -1217,20 +1233,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 15,
-    paddingLeft: 4,
+    paddingRight: 10,
   },
   tipBullet: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginTop: 7,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 8,
     marginRight: 15,
+    flexShrink: 0,
   },
   tipText: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: "#444",
-    lineHeight: 22,
+    lineHeight: 20,
+  },
+  additionalInfoCard: {
+    borderRadius: 12,
+    padding: 15,
+    marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  additionalInfoText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    marginLeft: 8,
+    fontWeight: '500',
   },
   disclaimerCard: {
     backgroundColor: "#FFF8E1",
@@ -1238,8 +1269,8 @@ const styles = StyleSheet.create({
     padding: 18,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginTop: 15,
-    marginBottom: 25,
+    marginTop: 25,
+    marginBottom: 10,
     borderLeftWidth: 5,
     borderLeftColor: "#FF9800",
   },
@@ -1252,4 +1283,5 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 });
+
 export default HealthIndex;
