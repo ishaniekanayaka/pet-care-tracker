@@ -18,9 +18,17 @@ A comprehensive mobile application built with **React Native + Expo** for tracki
 ---
 ## 📺 Demo Video
 
-Watch the walkthrough/demo of **Pet Health Tracker App** on YouTube:
+Watch the walkthrough/demo of **Pet Health Tracker App**:
 
-[![Watch the vedio](https://img.youtube.com/vi/YOUR_VIDEO_ID/0.jpg)](https://youtu.be/hIrTED1YnL8)
+[![YouTube Video](https://img.shields.io/badge/Watch%20on-YouTube-red?logo=youtube&logoColor=white)](https://youtu.be/hIrTED1YnL8)
+
+---
+
+## 📥 Download APK
+
+Get the latest APK from Google Drive:
+
+[![Download APK](https://img.shields.io/badge/Download-APK-blue?logo=android&logoColor=white)](https://docs.google.com/uc?export=download&id=1GgRqStThTvO42GkNka07_ByejXeUd-81)
 
 ---
 ## 🚀 Key Features
